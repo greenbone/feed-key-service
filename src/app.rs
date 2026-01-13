@@ -55,7 +55,7 @@ impl App {
     pub async fn serve(self, server: &str, port: u16) -> Result<(), std::io::Error> {
         let address = format!("{}:{}", server, port);
         let listener = tokio::net::TcpListener::bind(address).await.unwrap();
-        tracing::info!("Listening on {}", listener.local_addr().unwrap());
+        tracing::info!("Listening on http://{}", listener.local_addr().unwrap());
         axum::serve(listener, self.router()).await
     }
 }
