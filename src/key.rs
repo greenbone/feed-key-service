@@ -64,7 +64,8 @@ async fn download_key(
   path = "",
   responses(
     (status = 200, description = "Key upload OK", body = String),
-    (status = 500, description = "Key upload failed", body = String),
+    (status = 500, description = "Key upload failed. File error.", body = String),
+    (status = 500, description = "Key upload failed. Stream error.", body = String),
   ),
   tag = KEY_TAG,
   request_body(content_type = "application/x-pem-file", description = "The key file to upload")
@@ -73,9 +74,14 @@ async fn upload_key(State(state): State<AppState>, request: Request) -> impl Int
     let file = match tokio::fs::File::create(&state.key_path).await {
         Ok(file) => file,
         Err(err) => {
+            tracing::error!(
+                "Failed to create key file {}: {}",
+                state.key_path.display(),
+                err
+            );
             return Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Key File {} not found: {}", state.key_path.display(), err),
+                "Key upload failed. File error.",
             ));
         }
     };
@@ -85,15 +91,19 @@ async fn upload_key(State(state): State<AppState>, request: Request) -> impl Int
     let mut reader = StreamReader::new(stream);
     let mut writer = BufWriter::new(file);
     match tokio::io::copy(&mut reader, &mut writer).await {
-        Ok(_) => Ok(()),
+        Ok(_) => {
+            tracing::info!("Successfully wrote key file {}", state.key_path.display());
+            return Ok("Key upload successful");
+        }
         Err(err) => {
+            tracing::error!(
+                "Failed to write key file {}: {}",
+                state.key_path.display(),
+                err
+            );
             return Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
-                format!(
-                    "Failed to write key file {}: {}",
-                    state.key_path.display(),
-                    err
-                ),
+                "Key upload failed. Stream error.",
             ));
         }
     }
@@ -108,20 +118,38 @@ async fn upload_key(State(state): State<AppState>, request: Request) -> impl Int
   ),
   tag = KEY_TAG,
 )]
-async fn delete_key(
-    State(state): State<AppState>,
-) -> Result<impl IntoResponse, (StatusCode, String)> {
+async fn delete_key(State(state): State<AppState>) -> impl IntoResponse {
+    match state.key_path.try_exists() {
+        Ok(exists) => {
+            if !exists {
+                tracing::info!(
+                    "Key file {} does not exist, nothing to delete",
+                    state.key_path.display()
+                );
+                return Ok("Key deleted successfully");
+            }
+        }
+        Err(_) => {
+            tracing::error!(
+                "Failed to check existence of key file {}",
+                state.key_path.display()
+            );
+            return Err((StatusCode::INTERNAL_SERVER_ERROR, "Key deletion failed"));
+        }
+    }
+
     match tokio::fs::remove_file(&state.key_path).await {
-        Ok(_) => Ok(()),
+        Ok(_) => {
+            tracing::info!("Successfully deleted key file {}", state.key_path.display());
+            return Ok("Key deleted successfully");
+        }
         Err(err) => {
-            return Err((
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!(
-                    "Failed to delete key file {}: {}",
-                    state.key_path.display(),
-                    err
-                ),
-            ));
+            tracing::error!(
+                "Failed to delete key file {}: {}",
+                state.key_path.display(),
+                err
+            );
+            return Err((StatusCode::INTERNAL_SERVER_ERROR, "Key deletion failed"));
         }
     }
 }

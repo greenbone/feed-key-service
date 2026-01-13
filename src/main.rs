@@ -1,7 +1,4 @@
-use crate::{
-    app::{GlobalState, create_app},
-    cli::Cli,
-};
+use crate::{app::App, cli::Cli};
 
 mod app;
 mod cli;
@@ -12,12 +9,10 @@ mod openapi;
 #[tokio::main]
 async fn main() {
     let cli = Cli::default();
-
-    let state = GlobalState::new(cli.key_path.into());
-    let app = create_app(state);
+    let app = App::new(cli.key_path.into());
 
     let address = format!("{}:{}", cli.server, cli.port);
-    println!("Listening on http://{}", address);
     let listener = tokio::net::TcpListener::bind(address).await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+    tracing::info!("listening on {}", listener.local_addr().unwrap());
+    axum::serve(listener, app.router()).await.unwrap();
 }
