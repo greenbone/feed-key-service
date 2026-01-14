@@ -18,13 +18,13 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[derive(Clone)]
 pub struct GlobalState {
-    pub key_path: PathBuf,
+    pub feed_key_path: PathBuf,
 }
 
 impl GlobalState {
-    pub fn new(key_path: PathBuf) -> Self {
+    pub fn new(feed_key_path: PathBuf) -> Self {
         Self {
-            key_path: path::absolute(key_path).unwrap(),
+            feed_key_path: path::absolute(feed_key_path).unwrap(),
         }
     }
 }
@@ -34,13 +34,13 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(key_path: PathBuf, log: String) -> Self {
+    pub fn new(feed_key_path: PathBuf, log: String) -> Self {
         tracing_subscriber::registry()
             .with(tracing_subscriber::EnvFilter::new(log))
             .with(tracing_subscriber::fmt::layer())
             .init();
 
-        let state = GlobalState::new(key_path);
+        let state = GlobalState::new(feed_key_path);
         Self { state }
     }
 
@@ -70,11 +70,11 @@ impl App {
         self,
         server: &str,
         port: u16,
-        tls_cert: String,
-        tls_key: String,
+        tls_server_cert: String,
+        tls_server_key: String,
     ) -> Result<(), std::io::Error> {
         let address = format!("{}:{}", server, port);
-        let config = RustlsConfig::from_pem_file(tls_cert, tls_key).await?;
+        let config = RustlsConfig::from_pem_file(tls_server_cert, tls_server_key).await?;
         tracing::info!("Listening on https://{}", address);
         axum_server::bind_rustls(SocketAddr::from_str(&address).unwrap(), config)
             .serve(self.router().into_make_service())
