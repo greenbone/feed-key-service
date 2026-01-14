@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Greenbone AG
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 use axum::{Router, response::Redirect, routing::get};
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
