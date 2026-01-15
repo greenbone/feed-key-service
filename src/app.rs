@@ -4,17 +4,22 @@
 
 use axum::{Router, http::StatusCode, response::IntoResponse};
 use axum_server::tls_rustls::RustlsConfig;
+use rustls::{ServerConfig, server::WebPkiClientVerifier};
 use std::{
+    error::Error,
     net::SocketAddr,
     path::{self, PathBuf},
     str::FromStr,
     sync::Arc,
 };
+use thiserror::Error;
 use tower::ServiceBuilder;
 use tower_http::{
     compression::CompressionLayer, decompression::RequestDecompressionLayer, trace::TraceLayer,
 };
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+
+use crate::certs::{create_client_root_cert_store, load_certificate, load_private_key};
 
 #[derive(Clone)]
 pub struct GlobalState {
@@ -31,6 +36,17 @@ impl GlobalState {
 
 pub struct App {
     state: GlobalState,
+}
+
+#[derive(Error, Debug)]
+enum AppError {
+    #[error("Invalid IP Address: {0}")]
+    InvalidAddress(String),
+
+    #[error(
+        "Client certificate authentication enabled but no CA certificate chain provided in {0}"
+    )]
+    EmptyClientCertificateChain(String),
 }
 
 impl App {
@@ -59,41 +75,90 @@ impl App {
             .fallback(handler_404)
     }
 
-    async fn serve_http(self, server: &str, port: u16) -> Result<(), std::io::Error> {
-        let address = format!("{}:{}", server, port);
+    async fn serve_http(self, address: SocketAddr) -> Result<(), std::io::Error> {
         tracing::info!("Listening on http://{}", address);
-        axum_server::bind(SocketAddr::from_str(&address).unwrap())
+        axum_server::bind(address)
             .serve(self.router().into_make_service())
             .await
     }
 
     async fn serve_tls(
         self,
-        server: &str,
-        port: u16,
-        tls_server_cert: String,
-        tls_server_key: String,
+        address: SocketAddr,
+        tls_server_cert: &str,
+        tls_server_key: &str,
     ) -> Result<(), std::io::Error> {
-        let address = format!("{}:{}", server, port);
         let config = RustlsConfig::from_pem_file(tls_server_cert, tls_server_key).await?;
         tracing::info!("Listening on https://{}", address);
-        axum_server::bind_rustls(SocketAddr::from_str(&address).unwrap(), config)
+        axum_server::bind_rustls(address, config)
             .serve(self.router().into_make_service())
             .await
     }
 
+    async fn server_mtls(
+        self,
+        address: SocketAddr,
+        tls_server_cert: &str,
+        tls_server_key: &str,
+        tls_client_ca_cert: &str,
+    ) -> Result<(), Box<dyn Error>> {
+        let server_cert = load_certificate(tls_server_cert)?;
+        let server_key = load_private_key(tls_server_key)?;
+        let root_store = create_client_root_cert_store(tls_client_ca_cert)?;
+        if root_store.is_empty() {
+            return Err(Box::new(AppError::EmptyClientCertificateChain(
+                tls_client_ca_cert.into(),
+            )));
+        }
+        let client_cert_verifier = WebPkiClientVerifier::builder(Arc::new(root_store)).build()?;
+        let config_builder = ServerConfig::builder()
+            .with_client_cert_verifier(client_cert_verifier)
+            .with_single_cert(vec![server_cert], server_key)?;
+        let server_config = Arc::new(config_builder);
+        let config = RustlsConfig::from_config(server_config);
+
+        tracing::info!("Client certificate authentication enabled");
+        tracing::info!("Listening on https://{}", address);
+
+        axum_server::bind_rustls(address, config)
+            .serve(self.router().into_make_service())
+            .await
+            .map_err(|e| e.into())
+    }
+
     pub async fn serve(
         self,
-        server: &str,
+        server: String,
         port: u16,
-        tls_cert: Option<String>,
-        tls_key: Option<String>,
-    ) -> Result<(), std::io::Error> {
-        if tls_cert.is_none() || tls_key.is_none() {
-            self.serve_http(server, port).await
+        tls_server_cert: Option<String>,
+        tls_server_key: Option<String>,
+        tls_client_certs: Option<String>,
+    ) -> Result<(), Box<dyn Error>> {
+        let address = format!("{}:{}", server, port);
+        tracing::debug!(server = ?server, port = ?port, "parsing server address {}", address);
+        let socket_address =
+            SocketAddr::from_str(&address).map_err(|_| AppError::InvalidAddress(address))?;
+
+        if tls_server_cert.is_some() && tls_server_key.is_some() {
+            let tls_server_cert = tls_server_cert.unwrap();
+            let tls_server_key = tls_server_key.unwrap();
+            match tls_client_certs {
+                Some(client_cert) => self
+                    .server_mtls(
+                        socket_address,
+                        &tls_server_cert,
+                        &tls_server_key,
+                        &client_cert,
+                    )
+                    .await
+                    .map_err(|e| e.into()),
+                None => self
+                    .serve_tls(socket_address, &tls_server_cert, &tls_server_key)
+                    .await
+                    .map_err(|e| e.into()),
+            }
         } else {
-            self.serve_tls(server, port, tls_cert.unwrap(), tls_key.unwrap())
-                .await
+            self.serve_http(socket_address).await.map_err(|e| e.into())
         }
     }
 }

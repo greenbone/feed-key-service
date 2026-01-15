@@ -23,7 +23,7 @@ pub struct Cli {
     #[arg(short, long, env = "GREENBONE_FEED_KEY_LOG", default_value_t = format!("{}=info", env!("CARGO_CRATE_NAME")))]
     pub log: String,
 
-    /// Path to TLS server certificate file (enables HTTPS)
+    /// Path to TLS server certificate (.pem) file (enables HTTPS)
     #[arg(
         long,
         env = "GREENBONE_FEED_KEY_TLS_SERVER_CERT",
@@ -38,6 +38,15 @@ pub struct Cli {
         requires = "tls_server_cert"
     )]
     pub tls_server_key: Option<String>,
+
+    /// Path to TLS client certificates (.pem) file (enables mTLS)
+    #[arg(
+        long,
+        env = "GREENBONE_FEED_KEY_TLS_CLIENT_CERTS",
+        requires = "tls_server_cert",
+        requires = "tls_server_key"
+    )]
+    pub tls_client_certs: Option<String>,
 }
 
 impl Default for Cli {

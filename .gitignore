@@ -17,4 +17,6 @@ target
 
 # TLS certificates
 *.pem
+*.key
+*.csr
 *.srl
