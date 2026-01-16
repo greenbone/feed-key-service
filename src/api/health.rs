@@ -17,6 +17,7 @@ const HEALTH_TAG: &str = "Health";
 )]
 pub struct HealthApi;
 
+// Check the health status of the service.
 #[utoipa::path(
   get,
   path = "",

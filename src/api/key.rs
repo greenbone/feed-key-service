@@ -23,10 +23,11 @@ const KEY_TAG: &str = "Key";
 #[openapi(
     info(description = "Key management endpoint", title = "Key API"),
     tags((name = KEY_TAG, description = "Key management operations")),
-    paths(download_key, upload_key, delete_key)
+    paths(download_key, upload_key, upload_key_multipart, delete_key)
 )]
 pub struct KeyApi;
 
+/// Download the current feed key as a PEM file.
 #[utoipa::path(
   get,
   path = "",
@@ -63,8 +64,9 @@ async fn download_key(
     Ok((headers, body))
 }
 
+/// Upload a new feed key as a PEM file.
 #[utoipa::path(
-  post,
+  put,
   path = "",
   responses(
     (status = 200, description = "Key upload OK", body = String),
@@ -116,6 +118,26 @@ async fn upload_key(State(state): State<AppState>, request: Request) -> impl Int
     }
 }
 
+/// Upload a new feed key as a multipart/form-data file upload.
+#[utoipa::path(
+  post,
+  path = "",
+  responses(
+    (status = 200, description = "Key upload OK", body = String),
+    (status = 500, description = "Key upload failed. File error.", body = String),
+    (status = 500, description = "Key upload failed. Stream error.", body = String),
+  ),
+  tag = KEY_TAG,
+)]
+async fn upload_key_multipart() -> impl IntoResponse {
+    // To be implemented in the future
+    (
+        StatusCode::NOT_IMPLEMENTED,
+        "Multipart upload not implemented yet",
+    )
+}
+
+/// Delete the current feed key.
 #[utoipa::path(
   delete,
   path = "",
@@ -165,5 +187,11 @@ async fn delete_key(State(state): State<AppState>) -> impl IntoResponse {
 }
 
 pub fn routes() -> AppRouter {
-    Router::new().route("/", get(download_key).post(upload_key).delete(delete_key))
+    Router::new().route(
+        "/",
+        get(download_key)
+            .put(upload_key)
+            .delete(delete_key)
+            .post(upload_key_multipart),
+    )
 }

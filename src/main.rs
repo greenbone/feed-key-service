@@ -4,11 +4,10 @@
 
 use crate::{app::App, cli::Cli};
 
+mod api;
 mod app;
 mod certs;
 mod cli;
-mod health;
-mod key;
 mod openapi;
 
 #[tokio::main]

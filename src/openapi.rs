@@ -12,15 +12,15 @@ use crate::app::AppRouter;
 #[openapi(
     info(description = "Greenbone Feed Key API", title = "Greenbone Feed Key"),
     nest(
-        (path = "/health", api = crate::health::HealthApi),
-        (path = "/key", api = crate::key::KeyApi),
+        (path = "/api/v1/health", api = crate::api::health::HealthApi),
+        (path = "/api/v1/key", api = crate::api::key::KeyApi),
     )
 )]
 struct ApiDoc;
 
 #[utoipa::path(
     get,
-    path = "/api-docs/openapi.json",
+    path = "/api/v1/openapi.json",
     responses(
         (status = 200, description = "JSON file", body = ())
     )
@@ -28,5 +28,5 @@ struct ApiDoc;
 pub fn routes() -> AppRouter {
     Router::new()
         .route("/", get(|| async { Redirect::permanent("/swagger-ui") }))
-        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
+        .merge(SwaggerUi::new("/swagger-ui").url("/api/v1/openapi.json", ApiDoc::openapi()))
 }

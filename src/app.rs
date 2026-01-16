@@ -62,8 +62,7 @@ impl App {
 
     pub fn router(self) -> Router {
         Router::new()
-            .nest("/key", crate::key::routes())
-            .nest("/health", crate::health::routes())
+            .nest("/api/v1", crate::api::routes())
             .merge(crate::openapi::routes())
             .layer(
                 ServiceBuilder::new()
