@@ -36,6 +36,7 @@ impl GlobalState {
 
 pub struct App {
     state: GlobalState,
+    upload_limit: Option<usize>,
 }
 
 #[derive(Error, Debug)]
@@ -50,19 +51,22 @@ enum AppError {
 }
 
 impl App {
-    pub fn new(feed_key_path: PathBuf, log: String) -> Self {
+    pub fn new(feed_key_path: PathBuf, log: String, upload_limit: Option<usize>) -> Self {
         tracing_subscriber::registry()
             .with(tracing_subscriber::EnvFilter::new(log))
             .with(tracing_subscriber::fmt::layer())
             .init();
 
         let state = GlobalState::new(feed_key_path);
-        Self { state }
+        Self {
+            state,
+            upload_limit,
+        }
     }
 
     pub fn router(self) -> Router {
         Router::new()
-            .nest("/api/v1", crate::api::routes())
+            .nest("/api/v1", crate::api::routes(self.upload_limit))
             .merge(crate::openapi::routes())
             .layer(
                 ServiceBuilder::new()

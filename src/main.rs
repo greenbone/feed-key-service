@@ -13,7 +13,7 @@ mod openapi;
 #[tokio::main]
 async fn main() {
     let cli = Cli::default();
-    let app = App::new(cli.feed_key_path.into(), cli.log);
+    let app = App::new(cli.feed_key_path.into(), cli.log, cli.upload_limit);
     let result = app
         .serve(
             cli.server,

@@ -5,19 +5,20 @@
 use axum::{
     Router,
     body::Body,
-    extract::{Request, State},
+    extract::{DefaultBodyLimit, Multipart, Request, State},
     http::{StatusCode, header},
     response::IntoResponse,
-    routing::get,
+    routing::{get, put},
 };
-use tokio::io::BufWriter;
+use tokio::io::{AsyncWriteExt, BufWriter};
 use tokio_stream::StreamExt;
 use tokio_util::io::{ReaderStream, StreamReader};
-use utoipa::OpenApi;
+use utoipa::{OpenApi, ToSchema};
 
 use crate::app::{AppRouter, AppState};
 
 const KEY_TAG: &str = "Key";
+const DEFAULT_UPLOAD_LIMIT: usize = 2 * 1024 * 1024; // 2 MB
 
 #[derive(OpenApi)]
 #[openapi(
@@ -69,12 +70,12 @@ async fn download_key(
   put,
   path = "",
   responses(
-    (status = 200, description = "Key upload OK", body = String),
+    (status = 200, description = "Key upload successful", body = String),
     (status = 500, description = "Key upload failed. File error.", body = String),
     (status = 500, description = "Key upload failed. Stream error.", body = String),
   ),
   tag = KEY_TAG,
-  request_body(content_type = "application/x-pem-file", description = "The key file to upload")
+  request_body(content(("application/x-pem-file"),("application/octet-stream")), description = "The key file to upload")
 )]
 async fn upload_key(State(state): State<AppState>, request: Request) -> impl IntoResponse {
     let file = match tokio::fs::File::create(&state.feed_key_path).await {
@@ -118,23 +119,113 @@ async fn upload_key(State(state): State<AppState>, request: Request) -> impl Int
     }
 }
 
+// only for utoipa documentation
+#[derive(ToSchema)]
+#[allow(unused)]
+struct UploadedForm {
+    #[schema(content_media_type = "application/x-pem-file", format = "binary")]
+    file: String,
+}
+
 /// Upload a new feed key as a multipart/form-data file upload.
 #[utoipa::path(
   post,
   path = "",
+  request_body(content_type = "multipart/formdata", content = inline(UploadedForm), description = "File to upload"),
   responses(
-    (status = 200, description = "Key upload OK", body = String),
+    (status = 200, description = "Key upload successful", body = String),
+    (status = 400, description = "Key upload failed. Invalid multipart data.", body = String),
+    (status = 400, description = "Key upload failed. No file provided.", body = String),
     (status = 500, description = "Key upload failed. File error.", body = String),
     (status = 500, description = "Key upload failed. Stream error.", body = String),
+    (status = 500, description = "Key upload failed. Could not write to file.", body = String),
   ),
   tag = KEY_TAG,
 )]
-async fn upload_key_multipart() -> impl IntoResponse {
-    // To be implemented in the future
-    (
-        StatusCode::NOT_IMPLEMENTED,
-        "Multipart upload not implemented yet",
-    )
+async fn upload_key_multipart(
+    State(state): State<AppState>,
+    mut multipart: Multipart,
+) -> Result<&'static str, (StatusCode, &'static str)> {
+    let field = multipart.next_field().await;
+    let field = match field {
+        Ok(f) => f,
+        Err(err) => {
+            tracing::error!("Failed to process multipart upload: {}", err);
+            return Err((
+                StatusCode::BAD_REQUEST,
+                "Key upload failed. Invalid multipart data.",
+            ));
+        }
+    };
+    let mut field = match field {
+        Some(f) => f,
+        None => {
+            tracing::error!("No file provided in multipart upload");
+            return Err((
+                StatusCode::BAD_REQUEST,
+                "Key upload failed. No file provided.",
+            ));
+        }
+    };
+    match field.name() {
+        Some(name) if name == "file" => {}
+        _ => {
+            tracing::error!("No file provided in multipart upload");
+            return Err((
+                StatusCode::BAD_REQUEST,
+                "Key upload failed. No file provided.",
+            ));
+        }
+    };
+    let file = match tokio::fs::File::create(&state.feed_key_path).await {
+        Ok(file) => file,
+        Err(err) => {
+            tracing::error!(
+                "Failed to create key file {}: {}",
+                state.feed_key_path.display(),
+                err
+            );
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Key upload failed. File error.",
+            ));
+        }
+    };
+
+    let mut writer = BufWriter::new(file);
+    while let Some(chunk) = field
+        .chunk()
+        .await
+        .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "foo"))?
+    {
+        if let Err(e) = writer.write(&chunk).await {
+            tracing::error!(
+                "Failed to write key file {}: {}",
+                state.feed_key_path.display(),
+                e
+            );
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Key upload failed. Stream error.",
+            ));
+        }
+    }
+    writer.flush().await.map_err(|err| {
+        tracing::error!(
+            "Failed to flush key file {}: {}",
+            state.feed_key_path.display(),
+            err
+        );
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Key upload failed. Could not write to file.",
+        )
+    })?;
+    tracing::info!(
+        "Successfully wrote key file {}",
+        state.feed_key_path.display()
+    );
+    Ok("Key upload successful")
 }
 
 /// Delete the current feed key.
@@ -186,12 +277,18 @@ async fn delete_key(State(state): State<AppState>) -> impl IntoResponse {
     }
 }
 
-pub fn routes() -> AppRouter {
-    Router::new().route(
-        "/",
-        get(download_key)
-            .put(upload_key)
-            .delete(delete_key)
-            .post(upload_key_multipart),
-    )
+pub fn routes(upload_limit: Option<usize>) -> AppRouter {
+    Router::new()
+        .route("/", get(download_key).delete(delete_key))
+        .route(
+            "/",
+            put(upload_key)
+                .post(upload_key_multipart)
+                // by default the upload limit is 2MB
+                // see https://docs.rs/axum/latest/axum/extract/struct.Multipart.html#large-files
+                // and https://docs.rs/axum/latest/axum/extract/struct.DefaultBodyLimit.html
+                .layer(DefaultBodyLimit::max(
+                    upload_limit.unwrap_or(DEFAULT_UPLOAD_LIMIT),
+                )),
+        )
 }

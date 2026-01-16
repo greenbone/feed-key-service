@@ -9,8 +9,8 @@ use crate::app::AppRouter;
 pub mod health;
 pub mod key;
 
-pub fn routes() -> AppRouter {
+pub fn routes(upload_limit: Option<usize>) -> AppRouter {
     Router::new()
-        .nest("/key", key::routes())
+        .nest("/key", key::routes(upload_limit))
         .nest("/health", health::routes())
 }

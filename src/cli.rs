@@ -47,6 +47,10 @@ pub struct Cli {
         requires = "tls_server_key"
     )]
     pub tls_client_certs: Option<String>,
+
+    /// Maximum upload size in bytes for feed key uploads
+    #[arg(long, env = "GREENBONE_FEED_KEY_UPLOAD_LIMIT")]
+    pub upload_limit: Option<usize>,
 }
 
 impl Default for Cli {

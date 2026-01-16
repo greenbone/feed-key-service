@@ -6,7 +6,7 @@ description = "A Service for Uploading a Greenbone Feed Key"
 publish = false
 
 [dependencies]
-axum = { version = "0.8.8", features = ["http2"] }
+axum = { version = "0.8.8", features = ["http2", "multipart"] }
 axum-server = { version = "0.8.0", features = ["tls-rustls"] }
 clap = { version = "4.5.54", features = ["derive", "env"] }
 rustls = "0.23.36"
