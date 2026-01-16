@@ -92,7 +92,7 @@ Via Environment Variables
 ```sh
 export GREENBONE_FEED_KEY_TLS_SERVER_KEY=./certs/server.key
 export GREENBONE_FEED_KEY_TLS_SERVER_CERT=./certs/server.cert.pem
-export GREENBONE_FEED_KEY_TLS_CLIENT_CERTs=./certs/ca.cert.pem
+export GREENBONE_FEED_KEY_TLS_CLIENT_CERTS=./certs/ca.cert.pem
 greenbone-feed-key
 ```
 
