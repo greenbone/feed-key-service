@@ -38,6 +38,6 @@ jobs:
       - name: Output rust version for educational purposes
         run: rustup --version
       - name: Build
-        run: cargo build --verbose
+        run: make build
       - name: Run tests
-        run: cargo test --verbose
+        run: make test

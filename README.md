@@ -1,9 +1,14 @@
+![Greenbone Logo](https://www.greenbone.net/wp-content/uploads/gb_new-logo_horizontal_rgb_small.png)
+
 # greenbone-feed-key <!-- omit in toc -->
 
 Service for Uploading a Greenbone Feed Key
 
 - [Settings](#settings)
 - [TLS](#tls)
+- [Maintainer](#maintainer)
+- [Contributing](#contributing)
+- [License](#license)
 
 ## Settings
 
@@ -20,3 +25,22 @@ Service for Uploading a Greenbone Feed Key
 ## TLS
 
 See [TLS documentation](./certs/README.md) for more details
+
+## Maintainer
+
+This project is maintained by [Greenbone AG][Greenbone].
+
+## Contributing
+
+Your contributions are highly appreciated. Please [create a pull
+request](https://github.com/greenbone/greenbone-feed-key/pulls) on GitHub. Bigger changes need
+to be discussed with the development team via the [issues section at
+github](https://github.com/greenbone/greenbone-feed-key/issues) first.
+
+## License
+
+Copyright (C) 2026 [Greenbone AG][Greenbone]
+
+Licensed under the [GNU Affero General Public License v3.0 or later](LICENSE).
+
+[Greenbone]: https://www.greenbone.net/
