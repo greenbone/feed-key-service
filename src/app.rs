@@ -110,11 +110,16 @@ impl App {
             )));
         }
         let client_cert_verifier = WebPkiClientVerifier::builder(Arc::new(root_store)).build()?;
-        let config_builder = ServerConfig::builder()
+        let mut server_config = ServerConfig::builder()
             .with_client_cert_verifier(client_cert_verifier)
             .with_single_cert(vec![server_cert], server_key)?;
-        let server_config = Arc::new(config_builder);
-        let config = RustlsConfig::from_config(server_config);
+
+        // Enable ALPN protocols to support both HTTP/2 and HTTP/1.1
+        server_config.alpn_protocols = vec![
+            b"h2".to_vec(),       // HTTP/2
+            b"http/1.1".to_vec(), // HTTP/1.1
+        ];
+        let config = RustlsConfig::from_config(Arc::new(server_config));
 
         tracing::info!("Client certificate authentication enabled");
         tracing::info!("Listening on https://{}", address);
