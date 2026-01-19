@@ -15,7 +15,10 @@ use tokio_stream::StreamExt;
 use tokio_util::io::{ReaderStream, StreamReader};
 use utoipa::{OpenApi, ToSchema};
 
-use crate::app::{AppRouter, AppState};
+use crate::{
+    app::{AppRouter, AppState},
+    middleware::authorization_middleware,
+};
 
 const KEY_TAG: &str = "Key";
 const DEFAULT_UPLOAD_LIMIT: usize = 2 * 1024 * 1024; // 2 MB
@@ -34,9 +37,11 @@ pub struct KeyApi;
   path = "",
   responses(
     (status = 200, description = "Key download OK", body = String, content_type = "application/x-pem-file"),
+    (status = 401, description = "Unauthorized", body = String),
     (status = 404, description = "Key not available", body = String),
   ),
   tag = KEY_TAG,
+  security(("jwt_auth" = []))
 )]
 async fn download_key(
     State(state): State<AppState>,
@@ -71,11 +76,13 @@ async fn download_key(
   path = "",
   responses(
     (status = 200, description = "Key upload successful", body = String),
+    (status = 401, description = "Unauthorized", body = String),
     (status = 500, description = "Key upload failed. File error.", body = String),
     (status = 500, description = "Key upload failed. Stream error.", body = String),
   ),
   tag = KEY_TAG,
-  request_body(content(("application/x-pem-file"),("application/octet-stream")), description = "The key file to upload")
+  request_body(content(("application/x-pem-file"),("application/octet-stream")), description = "The key file to upload"),
+  security(("jwt_auth" = []))
 )]
 async fn upload_key(State(state): State<AppState>, request: Request) -> impl IntoResponse {
     let file = match tokio::fs::File::create(&state.feed_key_path).await {
@@ -136,11 +143,13 @@ struct UploadedForm {
     (status = 200, description = "Key upload successful", body = String),
     (status = 400, description = "Key upload failed. Invalid multipart data.", body = String),
     (status = 400, description = "Key upload failed. No file provided.", body = String),
+    (status = 401, description = "Unauthorized", body = String),
     (status = 500, description = "Key upload failed. File error.", body = String),
     (status = 500, description = "Key upload failed. Stream error.", body = String),
     (status = 500, description = "Key upload failed. Could not write to file.", body = String),
   ),
   tag = KEY_TAG,
+  security(("jwt_auth" = []))
 )]
 async fn upload_key_multipart(
     State(state): State<AppState>,
@@ -234,9 +243,11 @@ async fn upload_key_multipart(
   path = "",
   responses(
     (status = 200, description = "Key deleted successfully", body = String),
+    (status = 401, description = "Unauthorized", body = String),
     (status = 500, description = "Key deletion failed", body = String),
   ),
   tag = KEY_TAG,
+  security(("jwt_auth" = []))
 )]
 async fn delete_key(State(state): State<AppState>) -> impl IntoResponse {
     match state.feed_key_path.try_exists() {
@@ -277,7 +288,7 @@ async fn delete_key(State(state): State<AppState>) -> impl IntoResponse {
     }
 }
 
-pub fn routes(upload_limit: Option<usize>) -> AppRouter {
+pub fn routes(state: AppState, upload_limit: Option<usize>) -> AppRouter {
     Router::new()
         .route("/", get(download_key).delete(delete_key))
         .route(
@@ -291,4 +302,9 @@ pub fn routes(upload_limit: Option<usize>) -> AppRouter {
                     upload_limit.unwrap_or(DEFAULT_UPLOAD_LIMIT),
                 )),
         )
+        // require authorization for all key routes
+        .layer(axum::middleware::from_fn_with_state(
+            state,
+            authorization_middleware,
+        ))
 }

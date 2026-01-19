@@ -20,7 +20,10 @@ use tower_http::{
 };
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-use crate::certs::{create_client_root_cert_store, load_certificate, load_private_key};
+use crate::{
+    certs::{create_client_root_cert_store, load_certificate, load_private_key},
+    jwt::JwtDecodeSecret,
+};
 
 use tokio::signal::unix::{SignalKind, signal};
 
@@ -47,12 +50,14 @@ async fn shutdown_signal(handle: Handle<SocketAddr>) {
 #[derive(Clone)]
 pub struct GlobalState {
     pub feed_key_path: PathBuf,
+    pub jwt_secret: JwtDecodeSecret,
 }
 
 impl GlobalState {
-    pub fn new(feed_key_path: PathBuf) -> Self {
+    pub fn new(feed_key_path: PathBuf, jwt_secret: JwtDecodeSecret) -> Self {
         Self {
             feed_key_path: path::absolute(feed_key_path).unwrap(),
+            jwt_secret,
         }
     }
 }
@@ -74,13 +79,18 @@ enum AppError {
 }
 
 impl App {
-    pub fn new(feed_key_path: PathBuf, log: String, upload_limit: Option<usize>) -> Self {
+    pub fn new(
+        feed_key_path: PathBuf,
+        log: String,
+        upload_limit: Option<usize>,
+        jwt_secret: JwtDecodeSecret,
+    ) -> Self {
         tracing_subscriber::registry()
             .with(tracing_subscriber::EnvFilter::new(log))
             .with(tracing_subscriber::fmt::layer())
             .init();
 
-        let state = GlobalState::new(feed_key_path);
+        let state = GlobalState::new(feed_key_path, jwt_secret);
         Self {
             state,
             upload_limit,
@@ -88,8 +98,12 @@ impl App {
     }
 
     pub fn router(self) -> Router {
+        let state = Arc::new(self.state);
         Router::new()
-            .nest("/api/v1", crate::api::routes(self.upload_limit))
+            .nest(
+                "/api/v1",
+                crate::api::routes(state.clone(), self.upload_limit),
+            )
             .merge(crate::openapi::routes())
             .layer(
                 ServiceBuilder::new()
@@ -97,7 +111,7 @@ impl App {
                     .layer(CompressionLayer::new()),
             )
             .layer(TraceLayer::new_for_http())
-            .with_state(Arc::new(self.state))
+            .with_state(state.clone())
             .fallback(handler_404)
     }
 

@@ -4,13 +4,13 @@
 
 use axum::Router;
 
-use crate::app::AppRouter;
+use crate::app::{AppRouter, AppState};
 
 pub mod health;
 pub mod key;
 
-pub fn routes(upload_limit: Option<usize>) -> AppRouter {
+pub fn routes(state: AppState, upload_limit: Option<usize>) -> AppRouter {
     Router::new()
-        .nest("/key", key::routes(upload_limit))
+        .nest("/key", key::routes(state, upload_limit))
         .nest("/health", health::routes())
 }

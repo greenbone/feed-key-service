@@ -51,6 +51,10 @@ pub struct Cli {
     /// Maximum upload size in bytes for feed key uploads
     #[arg(long, env = "GREENBONE_FEED_KEY_UPLOAD_LIMIT")]
     pub upload_limit: Option<usize>,
+
+    /// JWT shared secret for securing upload and delete operations
+    #[arg(long, group = "jwt", env = "GREENBONE_FEED_KEY_JWT_SHARED_SECRET")]
+    pub jwt_shared_secret: Option<String>,
 }
 
 impl Default for Cli {
@@ -79,6 +83,7 @@ mod tests {
         assert_eq!(cli.tls_server_key, None);
         assert_eq!(cli.tls_client_certs, None);
         assert_eq!(cli.upload_limit, None);
+        assert_eq!(cli.jwt_shared_secret, None);
     }
 
     #[test]
@@ -168,5 +173,11 @@ mod tests {
     fn test_parse_upload_limit() {
         let cli = try_parse_from(vec!["--upload-limit", "1048576"]).unwrap();
         assert_eq!(cli.upload_limit, Some(1048576));
+    }
+
+    #[test]
+    fn test_parse_jwt_shared_secret() {
+        let cli = try_parse_from(vec!["--jwt-shared-secret", "mysecret"]).unwrap();
+        assert_eq!(cli.jwt_shared_secret, Some(String::from("mysecret")));
     }
 }
