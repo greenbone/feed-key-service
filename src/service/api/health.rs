@@ -5,7 +5,7 @@
 use axum::{Router, routing::get};
 use utoipa::OpenApi;
 
-use crate::app::AppRouter;
+use crate::service::app::AppRouter;
 
 const HEALTH_TAG: &str = "Health";
 

@@ -22,7 +22,8 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use crate::{
     certs::{create_client_root_cert_store, load_certificate, load_private_key},
-    jwt::JwtDecodeSecret,
+    jwt::JwtSecret,
+    service::{api, openapi},
 };
 
 use tokio::signal::unix::{SignalKind, signal};
@@ -50,11 +51,11 @@ async fn shutdown_signal(handle: Handle<SocketAddr>) {
 #[derive(Clone)]
 pub struct GlobalState {
     pub feed_key_path: PathBuf,
-    pub jwt_secret: JwtDecodeSecret,
+    pub jwt_secret: JwtSecret,
 }
 
 impl GlobalState {
-    pub fn new(feed_key_path: PathBuf, jwt_secret: JwtDecodeSecret) -> Self {
+    pub fn new(feed_key_path: PathBuf, jwt_secret: JwtSecret) -> Self {
         Self {
             feed_key_path: path::absolute(feed_key_path).unwrap(),
             jwt_secret,
@@ -83,7 +84,7 @@ impl App {
         feed_key_path: PathBuf,
         log: String,
         upload_limit: Option<usize>,
-        jwt_secret: JwtDecodeSecret,
+        jwt_secret: JwtSecret,
     ) -> Self {
         tracing_subscriber::registry()
             .with(tracing_subscriber::EnvFilter::new(log))
@@ -100,11 +101,8 @@ impl App {
     pub fn router(self) -> Router {
         let state = Arc::new(self.state);
         Router::new()
-            .nest(
-                "/api/v1",
-                crate::api::routes(state.clone(), self.upload_limit),
-            )
-            .merge(crate::openapi::routes())
+            .nest("/api/v1", api::routes(state.clone(), self.upload_limit))
+            .merge(openapi::routes())
             .layer(
                 ServiceBuilder::new()
                     .layer(RequestDecompressionLayer::new())

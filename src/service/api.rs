@@ -4,7 +4,7 @@
 
 use axum::Router;
 
-use crate::app::{AppRouter, AppState};
+use crate::service::app::{AppRouter, AppState};
 
 pub mod health;
 pub mod key;

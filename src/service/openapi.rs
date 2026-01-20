@@ -9,7 +9,7 @@ use utoipa::{
 };
 use utoipa_swagger_ui::SwaggerUi;
 
-use crate::app::AppRouter;
+use crate::service::app::AppRouter;
 
 struct SecuritySchemas;
 
@@ -31,8 +31,8 @@ impl Modify for SecuritySchemas {
     info(description = "Greenbone Feed Key API", title = "Greenbone Feed Key"),
     modifiers(&SecuritySchemas),
     nest(
-        (path = "/api/v1/health", api = crate::api::health::HealthApi),
-        (path = "/api/v1/key", api = crate::api::key::KeyApi),
+        (path = "/api/v1/health", api = crate::service::api::health::HealthApi),
+        (path = "/api/v1/key", api = crate::service::api::key::KeyApi),
     )
 )]
 struct ApiDoc;

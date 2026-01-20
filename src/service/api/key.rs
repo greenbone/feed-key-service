@@ -16,8 +16,8 @@ use tokio_util::io::{ReaderStream, StreamReader};
 use utoipa::{OpenApi, ToSchema};
 
 use crate::{
-    app::{AppRouter, AppState},
-    middleware::authorization_middleware,
+    service::app::{AppRouter, AppState},
+    service::middleware::authorization_middleware,
 };
 
 const KEY_TAG: &str = "Key";
