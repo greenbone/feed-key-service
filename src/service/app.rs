@@ -66,6 +66,7 @@ impl GlobalState {
 pub struct App {
     state: GlobalState,
     upload_limit: Option<usize>,
+    enable_api_doc: bool,
 }
 
 #[derive(Error, Debug)]
@@ -85,6 +86,7 @@ impl App {
         log: String,
         upload_limit: Option<usize>,
         jwt_secret: JwtSecret,
+        enable_api_doc: bool,
     ) -> Self {
         tracing_subscriber::registry()
             .with(tracing_subscriber::EnvFilter::new(log))
@@ -95,22 +97,30 @@ impl App {
         Self {
             state,
             upload_limit,
+            enable_api_doc,
         }
     }
 
     pub fn router(self) -> Router {
         let state = Arc::new(self.state);
-        Router::new()
-            .nest("/api/v1", api::routes(state.clone(), self.upload_limit))
-            .merge(openapi::routes())
+        let mut router =
+            Router::new().nest("/api/v1", api::routes(state.clone(), self.upload_limit));
+
+        if self.enable_api_doc {
+            tracing::info!("OpenAPI documentation enabled");
+            router = router.merge(openapi::routes());
+        }
+
+        router = router
             .layer(
                 ServiceBuilder::new()
                     .layer(RequestDecompressionLayer::new())
                     .layer(CompressionLayer::new()),
             )
             .layer(TraceLayer::new_for_http())
-            .with_state(state.clone())
-            .fallback(handler_404)
+            .fallback(handler_404);
+
+        router.with_state(state.clone())
     }
 
     async fn serve_http(

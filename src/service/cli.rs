@@ -23,6 +23,10 @@ pub struct Cli {
     #[arg(short, long, env = "GREENBONE_FEED_KEY_LOG", default_value_t = format!("{}=info", env!("CARGO_CRATE_NAME")))]
     pub log: String,
 
+    /// Serve OpenAPI documentation
+    #[arg(long, env = "GREENBONE_FEED_KEY_API_DOC", default_value_t = false)]
+    pub enable_api_doc: bool,
+
     /// Path to TLS server certificate (.pem) file (enables HTTPS)
     #[arg(
         long,
@@ -100,6 +104,7 @@ mod tests {
         assert_eq!(cli.server, "127.0.0.1");
         assert_eq!(cli.feed_key_path, "/etc/gvm/greenbone-enterprise-feed-key");
         assert_eq!(cli.log, format!("{}=info", env!("CARGO_CRATE_NAME")));
+        assert_eq!(cli.enable_api_doc, false);
         assert_eq!(cli.tls_server_cert, None);
         assert_eq!(cli.tls_server_key, None);
         assert_eq!(cli.tls_client_certs, None);
@@ -232,5 +237,11 @@ mod tests {
         );
         assert_eq!(cli.jwt_secret.jwt_shared_secret, None);
         assert_eq!(cli.jwt_secret.jwt_rsa_key, None);
+    }
+
+    #[test]
+    fn test_parse_enable_api_doc() {
+        let cli = try_parse_from_with_required(vec!["--enable-api-doc"]).unwrap();
+        assert_eq!(cli.enable_api_doc, true);
     }
 }

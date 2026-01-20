@@ -39,7 +39,13 @@ async fn main() {
             std::process::exit(1);
         }
     };
-    let app = App::new(cli.feed_key_path.into(), cli.log, cli.upload_limit, secret);
+    let app = App::new(
+        cli.feed_key_path.into(),
+        cli.log,
+        cli.upload_limit,
+        secret,
+        cli.enable_api_doc,
+    );
     let result = app
         .serve(
             cli.server,
