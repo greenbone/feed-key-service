@@ -11,4 +11,6 @@ KEY_SIZE=${KEY_SIZE:-32}  # Default key size in bytes if not set. Default is 32 
 
 openssl rand \
   -base64 \
-  "${KEY_SIZE}"
+  "${KEY_SIZE}" \
+  | tr -d '\n'
+echo

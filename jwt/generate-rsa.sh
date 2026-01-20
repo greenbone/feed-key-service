@@ -10,8 +10,8 @@
 set -e
 
 KEY_SIZE=${KEY_SIZE:-4096}  # Default key size if not set
-PRIVATE_KEY=${PRIVATE_KEY:-rsa-private.pem}  # Default private key output file if not set
-PUBLIC_KEY=${PUBLIC_KEY:-rsa-public.pem}  # Default public key output file if
+PRIVATE_KEY=${PRIVATE_KEY:-rsa.private.pem}  # Default private key output file if not set
+PUBLIC_KEY=${PUBLIC_KEY:-rsa.public.pem}  # Default public key output file if
 
 openssl genpkey \
   -algorithm RSA \

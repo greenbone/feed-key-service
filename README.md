@@ -6,6 +6,7 @@ Service for Uploading a Greenbone Feed Key
 
 - [Settings](#settings)
 - [TLS](#tls)
+- [JWT](#jwt)
 - [Maintainer](#maintainer)
 - [Contributing](#contributing)
 - [License](#license)
@@ -16,17 +17,28 @@ Service for Uploading a Greenbone Feed Key
 | --------------------- | -------------------------------------- | ------ | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | `-p, --port`          | `GREENBONE_FEED_KEY_PORT`              | int    | `3000`                                   | Port to listen on                                                                                                         |
 | `-s, --server`        | `GREENBONE_FEED_KEY_SERVER`            | string | `127.0.0.1`                              | IP address to listen on                                                                                                   |
-| `-k, --feed-key-path` | `GREENBONE_FEED_KEY_PATH`              | string | `/etc/gvm/greenbone-enterprise-feed-key` | Path to the enterprise feed key location                                                                                  |
+| `-k, --feed-key-path` | `GREENBONE_FEED_KEY_PATH`              | path   | `/etc/gvm/greenbone-enterprise-feed-key` | Path to the enterprise feed key location                                                                                  |
 | `-l, --log`           | `GREENBONE_FEED_KEY_LOG`               | string | `greenbone_feed_key=info`                | [Logging directive](https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives) |
 | `--tls-server-cert`   | `GREENBONE_FEED_KEY_TLS_SERVER_CERT`   | string |                                          | Path to a TLS certificate (`.pem`) file                                                                                   |
 | `--tls-server-key`    | `GREENBONE_FEED_KEY_TLS_SERVER_KEY`    | string |                                          | Path to a TLS private key file                                                                                            |
 | `--tls-client-certs`  | `GREENBONE_FEED_KEY_TLS_CLIENT_CERTS`  | string |                                          | Path to a `.pem` file containing one ore more root certificates (aka. CA certs)                                           |
 | `--upload-limit`      | `GREENBONE_FEED_KEY_UPLOAD_LIMIT`      | int    | 2 MiB                                    | File size limit for the feed key in bytes                                                                                 |
 | `--jwt-shared-secret` | `GREENBONE_FEED_KEY_JWT_SHARED_SECRET` | string |                                          | A shared secret for validating [JSON Web Tokens](https://en.wikipedia.org/wiki/JSON_Web_Token)                            |
+| `--jwt-rsa-key`       | `GREENBONE_FEED_KEY_JWT_RSA_KEY`       | path   |                                          | Path to a `.pem` file containing a RSA public key for [JWT] signature validation                                          |
+| `--jwt-ecdsa-key`     | `GREENBONE_FEED_KEY_JWT_ECDSA_KEY`     | path   |                                          | Path to a `.pem` file containing an ECDSA public key (ECDSA using P-256 and SHA-256) for [JWT] signature validation       |
 
 ## TLS
 
+[TLS](https://en.wikipedia.org/wiki/Transport_Layer_Security) can be enabled for
+secure communication with the greenbone-feed-key service.
+
 See [TLS documentation](./certs/README.md) for more details
+
+## JWT
+
+[JSON Web Tokens][JWT] are used to secure the key API.
+
+See [JWT documentation](./jwt/README.md) for more details.
 
 ## Maintainer
 
@@ -46,3 +58,4 @@ Copyright (C) 2026 [Greenbone AG][Greenbone]
 Licensed under the [GNU Affero General Public License v3.0 or later](LICENSE).
 
 [Greenbone]: https://www.greenbone.net/
+[JWT]: https://en.wikipedia.org/wiki/JSON_Web_Token

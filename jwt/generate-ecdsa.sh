@@ -9,8 +9,8 @@
 
 set -e
 
-PRIVATE_KEY=${PRIVATE_KEY:-ecdsa-private.pem}  # Default private key output file if not set
-PUBLIC_KEY=${PUBLIC_KEY:-ecdsa-public.pem}  # Default public key output file if not set
+PRIVATE_KEY=${PRIVATE_KEY:-ecdsa.private.pem}  # Default private key output file if not set
+PUBLIC_KEY=${PUBLIC_KEY:-ecdsa.public.pem}  # Default public key output file if not set
 CURVE=${CURVE:-"P-256"}  # Default curve if not set
 
 openssl genpkey \
