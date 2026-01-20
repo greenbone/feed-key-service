@@ -26,7 +26,7 @@ thiserror = "2.0.17"
 tokio = { version = "1.49.0", features = ["full"] }
 tokio-stream = "0.1.18"
 tokio-util = { version = "0.7.18", features = ["io"] }
-tower = "0.5.2"
+tower = "0.5.3"
 tower-http = { version = "0.6.8", features = [
   "compression-full",
   "decompression-full",
