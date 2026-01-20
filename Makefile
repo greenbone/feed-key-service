@@ -1,5 +1,7 @@
 .PHONY: test build clean build-release
 
+INSTALL_PREFIX ?= /usr/local
+
 test:
 	cargo test --verbose
 
@@ -11,3 +13,6 @@ build-release:
 
 clean:
 	cargo clean
+
+install:
+	cargo install --path . --root $(DESTDIR)$(INSTALL_PREFIX)
