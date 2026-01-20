@@ -4,6 +4,7 @@
 
 Service for Managing a Greenbone Feed Key
 
+- [Installation](#installation)
 - [Settings](#settings)
 - [TLS](#tls)
 - [JWT](#jwt)
@@ -11,7 +12,21 @@ Service for Managing a Greenbone Feed Key
 - [Contributing](#contributing)
 - [License](#license)
 
+## Installation
+
+The project contains the `greenbone-feed-key` application which implements a
+HTTP service providing a REST based API. It is implemented in [Rust] and
+requires [cargo] for building and installing.
+
+```sh
+make DESTDIR=path/to/install install
+```
+
+The binary can be found at `path/to/install/usr/local/bin` afterwards.
+
 ## Settings
+
+The following settings can be adjusted for the `greenbone-feed-key` service.
 
 | CLI                   | Env                                    | Type   | Default                                  | Description                                                                                                               |
 | --------------------- | -------------------------------------- | ------ | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
@@ -59,3 +74,5 @@ Licensed under the [GNU Affero General Public License v3.0 or later](LICENSE).
 
 [Greenbone]: https://www.greenbone.net/
 [JWT]: https://en.wikipedia.org/wiki/JSON_Web_Token
+[Rust]: https://rust-lang.org/
+[cargo]: https://doc.rust-lang.org/stable/cargo/
