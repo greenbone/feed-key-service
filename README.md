@@ -1,8 +1,8 @@
 ![Greenbone Logo](https://www.greenbone.net/wp-content/uploads/gb_new-logo_horizontal_rgb_small.png)
 
-# greenbone-feed-key <!-- omit in toc -->
+# feed-key-service <!-- omit in toc -->
 
-Service for Uploading a Greenbone Feed Key
+Service for Managing a Greenbone Feed Key
 
 - [Settings](#settings)
 - [TLS](#tls)
@@ -47,9 +47,9 @@ This project is maintained by [Greenbone AG][Greenbone].
 ## Contributing
 
 Your contributions are highly appreciated. Please [create a pull
-request](https://github.com/greenbone/greenbone-feed-key/pulls) on GitHub. Bigger changes need
+request](https://github.com/greenbone/feed-key-service/pulls) on GitHub. Bigger changes need
 to be discussed with the development team via the [issues section at
-github](https://github.com/greenbone/greenbone-feed-key/issues) first.
+github](https://github.com/greenbone/feed-key-service/issues) first.
 
 ## License
 
