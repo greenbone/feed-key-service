@@ -5,5 +5,6 @@
 pub mod api;
 pub mod app;
 pub mod cli;
+pub mod error;
 mod middleware;
 mod openapi;
