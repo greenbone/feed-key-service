@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use std::path::PathBuf;
+
 use clap::{Args, Parser};
 
 #[derive(Parser)]
@@ -16,8 +18,13 @@ pub struct Cli {
     pub server: String,
 
     /// Path to the feed key file
-    #[arg(short = 'k', long, env = "GREENBONE_FEED_KEY_PATH", default_value_t = String::from("/etc/gvm/greenbone-enterprise-feed-key"))]
-    pub feed_key_path: String,
+    #[arg(
+        short = 'k',
+        long,
+        env = "GREENBONE_FEED_KEY_PATH",
+        default_value = "/etc/gvm/greenbone-enterprise-feed-key"
+    )]
+    pub feed_key_path: PathBuf,
 
     /// Tracing log level directive
     #[arg(short, long, env = "GREENBONE_FEED_KEY_LOG", default_value_t = format!("{}=info", env!("CARGO_CRATE_NAME")))]
@@ -33,7 +40,7 @@ pub struct Cli {
         env = "GREENBONE_FEED_KEY_TLS_SERVER_CERT",
         requires = "tls_server_key"
     )]
-    pub tls_server_cert: Option<String>,
+    pub tls_server_cert: Option<PathBuf>,
 
     /// Path to TLS server key file (enables HTTPS)
     #[arg(
@@ -41,7 +48,7 @@ pub struct Cli {
         env = "GREENBONE_FEED_KEY_TLS_SERVER_KEY",
         requires = "tls_server_cert"
     )]
-    pub tls_server_key: Option<String>,
+    pub tls_server_key: Option<PathBuf>,
 
     /// Path to TLS client certificates (.pem) file (enables mTLS)
     #[arg(
@@ -50,7 +57,7 @@ pub struct Cli {
         requires = "tls_server_cert",
         requires = "tls_server_key"
     )]
-    pub tls_client_certs: Option<String>,
+    pub tls_client_certs: Option<PathBuf>,
 
     /// Maximum upload size in bytes for feed key uploads
     #[arg(long, env = "GREENBONE_FEED_KEY_UPLOAD_LIMIT")]
@@ -69,11 +76,11 @@ pub struct JwtSecretGroup {
 
     /// JWT RSA key path for securing upload and delete operations
     #[arg(long, env = "GREENBONE_FEED_KEY_JWT_RSA_KEY")]
-    pub jwt_rsa_key: Option<String>,
+    pub jwt_rsa_key: Option<PathBuf>,
 
     /// JWT ECDSA key path for securing upload and delete operations
     #[arg(long, env = "GREENBONE_FEED_KEY_JWT_ECDSA_KEY")]
-    pub jwt_ecdsa_key: Option<String>,
+    pub jwt_ecdsa_key: Option<PathBuf>,
 }
 
 impl Default for Cli {
@@ -102,7 +109,10 @@ mod tests {
 
         assert_eq!(cli.port, 3000);
         assert_eq!(cli.server, "127.0.0.1");
-        assert_eq!(cli.feed_key_path, "/etc/gvm/greenbone-enterprise-feed-key");
+        assert_eq!(
+            cli.feed_key_path,
+            PathBuf::from("/etc/gvm/greenbone-enterprise-feed-key")
+        );
         assert_eq!(cli.log, format!("{}=info", env!("CARGO_CRATE_NAME")));
         assert_eq!(cli.enable_api_doc, false);
         assert_eq!(cli.tls_server_cert, None);
@@ -132,7 +142,7 @@ mod tests {
     #[test]
     fn test_parse_feed_key_path() {
         let cli = try_parse_from_with_required(vec!["--feed-key-path", "/tmp/key"]).unwrap();
-        assert_eq!(cli.feed_key_path, "/tmp/key");
+        assert_eq!(cli.feed_key_path, PathBuf::from("/tmp/key"));
     }
 
     #[test]
@@ -170,8 +180,8 @@ mod tests {
             "/tmp/key.pem",
         ])
         .unwrap();
-        assert_eq!(cli.tls_server_cert, Some(String::from("/tmp/cert.pem")));
-        assert_eq!(cli.tls_server_key, Some(String::from("/tmp/key.pem")));
+        assert_eq!(cli.tls_server_cert, Some(PathBuf::from("/tmp/cert.pem")));
+        assert_eq!(cli.tls_server_key, Some(PathBuf::from("/tmp/key.pem")));
     }
 
     #[test]
@@ -195,9 +205,9 @@ mod tests {
             "/tmp/ca.pem",
         ])
         .unwrap();
-        assert_eq!(cli.tls_client_certs, Some(String::from("/tmp/ca.pem")));
-        assert_eq!(cli.tls_server_cert, Some(String::from("/tmp/cert.pem")));
-        assert_eq!(cli.tls_server_key, Some(String::from("/tmp/key.pem")));
+        assert_eq!(cli.tls_client_certs, Some(PathBuf::from("/tmp/ca.pem")));
+        assert_eq!(cli.tls_server_cert, Some(PathBuf::from("/tmp/cert.pem")));
+        assert_eq!(cli.tls_server_key, Some(PathBuf::from("/tmp/key.pem")));
     }
 
     #[test]
@@ -222,7 +232,7 @@ mod tests {
         let cli = try_parse_from(vec!["--jwt-rsa-key", "/tmp/rsa_key.pem"]).unwrap();
         assert_eq!(
             cli.jwt_secret.jwt_rsa_key,
-            Some(String::from("/tmp/rsa_key.pem"))
+            Some(PathBuf::from("/tmp/rsa_key.pem"))
         );
         assert_eq!(cli.jwt_secret.jwt_shared_secret, None);
         assert_eq!(cli.jwt_secret.jwt_ecdsa_key, None);
@@ -233,7 +243,7 @@ mod tests {
         let cli = try_parse_from(vec!["--jwt-ecdsa-key", "/tmp/ecdsa_key.pem"]).unwrap();
         assert_eq!(
             cli.jwt_secret.jwt_ecdsa_key,
-            Some(String::from("/tmp/ecdsa_key.pem"))
+            Some(PathBuf::from("/tmp/ecdsa_key.pem"))
         );
         assert_eq!(cli.jwt_secret.jwt_shared_secret, None);
         assert_eq!(cli.jwt_secret.jwt_rsa_key, None);

@@ -8,7 +8,7 @@ use rustls::{ServerConfig, server::WebPkiClientVerifier};
 use std::{
     error::Error,
     net::SocketAddr,
-    path::{self, PathBuf},
+    path::{self, Path, PathBuf},
     str::FromStr,
     sync::Arc,
     time::Duration,
@@ -55,7 +55,7 @@ pub struct GlobalState {
 }
 
 impl GlobalState {
-    pub fn new(feed_key_path: PathBuf, jwt_secret: JwtSecret) -> Self {
+    pub fn new(feed_key_path: &Path, jwt_secret: JwtSecret) -> Self {
         Self {
             feed_key_path: path::absolute(feed_key_path).unwrap(),
             jwt_secret,
@@ -77,13 +77,13 @@ enum AppError {
     #[error(
         "Client certificate authentication enabled but no CA certificate chain provided in {0}"
     )]
-    EmptyClientCertificateChain(String),
+    EmptyClientCertificateChain(PathBuf),
 }
 
 impl App {
     pub fn new(
-        feed_key_path: PathBuf,
-        log: String,
+        feed_key_path: &Path,
+        log: &str,
         upload_limit: Option<usize>,
         jwt_secret: JwtSecret,
         enable_api_doc: bool,
@@ -139,8 +139,8 @@ impl App {
         self,
         handle: Handle<SocketAddr>,
         address: SocketAddr,
-        tls_server_cert: &str,
-        tls_server_key: &str,
+        tls_server_cert: &Path,
+        tls_server_key: &Path,
     ) -> Result<(), std::io::Error> {
         let config = RustlsConfig::from_pem_file(tls_server_cert, tls_server_key).await?;
         tracing::info!("Listening on https://{}", address);
@@ -154,9 +154,9 @@ impl App {
         self,
         handle: Handle<SocketAddr>,
         address: SocketAddr,
-        tls_server_cert: &str,
-        tls_server_key: &str,
-        tls_client_ca_cert: &str,
+        tls_server_cert: &Path,
+        tls_server_key: &Path,
+        tls_client_ca_cert: &Path,
     ) -> Result<(), Box<dyn Error>> {
         let server_cert = load_certificate(tls_server_cert)?;
         let server_key = load_private_key(tls_server_key)?;
@@ -190,11 +190,11 @@ impl App {
 
     pub async fn serve(
         self,
-        server: String,
+        server: &str,
         port: u16,
-        tls_server_cert: Option<String>,
-        tls_server_key: Option<String>,
-        tls_client_certs: Option<String>,
+        tls_server_cert: Option<&Path>,
+        tls_server_key: Option<&Path>,
+        tls_client_certs: Option<&Path>,
     ) -> Result<(), Box<dyn Error>> {
         let address = format!("{}:{}", server, port);
         tracing::debug!(server = ?server, port = ?port, "parsing server address {}", address);
