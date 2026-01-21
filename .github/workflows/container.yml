@@ -35,7 +35,7 @@ jobs:
       ref: ${{ inputs.ref-name }}
       ref-name: ${{ inputs.ref-name }}
       name: ${{ matrix.build.name }}
-      dockerfile: ./docker/Dockerfile
+      dockerfile: ./.docker/Dockerfile
       build-args: ${{ matrix.build.build-args }}
       prefix: ${{ matrix.build.prefix }}
       images: |
