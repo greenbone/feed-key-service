@@ -2,12 +2,14 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use std::path::Path;
+
 use greenbone_feed_key::{
     jwt::JwtSecret,
     service::{app::App, cli::Cli},
 };
 
-fn load_key(key_path: &str) -> Result<Vec<u8>, String> {
+fn load_key(key_path: &Path) -> Result<Vec<u8>, String> {
     match std::fs::read(key_path) {
         Ok(key_data) => Ok(key_data),
         Err(e) => Err(format!("Error reading key from {:?}: {}", key_path, e)),
@@ -40,19 +42,19 @@ async fn main() {
         }
     };
     let app = App::new(
-        cli.feed_key_path.into(),
-        cli.log,
+        &cli.feed_key_path,
+        &cli.log,
         cli.upload_limit,
         secret,
         cli.enable_api_doc,
     );
     let result = app
         .serve(
-            cli.server,
+            &cli.server,
             cli.port,
-            cli.tls_server_cert,
-            cli.tls_server_key,
-            cli.tls_client_certs,
+            cli.tls_server_cert.as_deref(),
+            cli.tls_server_key.as_deref(),
+            cli.tls_client_certs.as_deref(),
         )
         .await;
     if let Err(e) = result {
