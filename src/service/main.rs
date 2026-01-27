@@ -44,7 +44,7 @@ async fn main() {
     let app = App::new(
         &cli.feed_key_path,
         cli.upload_limit,
-        secret,
+        &secret,
         cli.enable_api_doc,
     );
     app.init_tracing(&cli.log);
