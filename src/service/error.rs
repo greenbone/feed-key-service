@@ -3,12 +3,12 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use axum::{
-    Json,
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use serde::Serialize;
 use thiserror::Error;
+
+use crate::service::response::JsonResponse;
 
 #[derive(Error, Debug)]
 pub enum Error {
@@ -16,23 +16,12 @@ pub enum Error {
     Unauthorized,
 }
 
-#[derive(Serialize)]
-struct JsonErrorResponse {
-    error: String,
-}
-
-impl JsonErrorResponse {
-    fn new(msg: String) -> Self {
-        JsonErrorResponse { error: msg }
-    }
-}
-
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
         let (status, error_message): (StatusCode, String) = match self {
             Error::Unauthorized => (StatusCode::UNAUTHORIZED, Error::Unauthorized.to_string()),
         };
-        (status, Json(JsonErrorResponse::new(error_message))).into_response()
+        (status, JsonResponse::from_error(&error_message)).into_response()
     }
 }
 
@@ -49,13 +38,13 @@ mod tests {
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 
-        let body = axum::body::to_bytes(response.into_body(), 4096)
-            .await
-            .unwrap();
+        let body = response.into_body();
+        let body = axum::body::to_bytes(body, 4096).await.unwrap();
         let body_json: serde_json::Value = serde_json::from_slice(&body).unwrap();
 
         let expected_json = json!({
-            "error": "Unauthorized"
+            "status": "error",
+            "message": "Unauthorized"
         });
 
         assert_eq!(body_json, expected_json);
