@@ -13,6 +13,10 @@ path = "src/service/main.rs"
 name = "greenbone-feed-key-cli"
 path = "src/cli/main.rs"
 
+[[test]]
+name = "service"
+harness = false
+
 [dependencies]
 axum = { version = "0.8.8", features = ["http2", "multipart"] }
 axum-server = { version = "0.8.0", features = ["tls-rustls"] }
@@ -37,3 +41,8 @@ tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.22", features = ["env-filter"] }
 utoipa = { version = "5.4.0", features = ["axum_extras"] }
 utoipa-swagger-ui = { version = "9.0.2", features = ["axum"] }
+
+[dev-dependencies]
+cucumber = { version = "0.22.1", features = ["tracing"] }
+rust-multipart-rfc7578_2 = "0.8.0"
+tempfile = "3.24.0"

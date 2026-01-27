@@ -1,9 +1,15 @@
-.PHONY: test build clean build-release run
+.PHONY: test test-integration test-unit build clean build-release run
 
 INSTALL_PREFIX ?= /usr/local
 
 test:
 	cargo test --verbose
+
+test-integration:
+	cargo test --test service --verbose
+
+test-unit:
+	cargo test --lib --verbose
 
 build:
 	cargo build --verbose
