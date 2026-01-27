@@ -22,7 +22,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use crate::{
     certs::{create_client_root_cert_store, load_certificate, load_private_key},
-    jwt::JwtSecret,
+    jwt::JwtDecodeSecret,
     service::{api, openapi},
 };
 
@@ -51,14 +51,14 @@ async fn shutdown_signal(handle: Handle<SocketAddr>) {
 #[derive(Clone)]
 pub struct GlobalState {
     pub feed_key_path: PathBuf,
-    pub jwt_secret: JwtSecret,
+    pub jwt_decode_secret: JwtDecodeSecret,
 }
 
 impl GlobalState {
-    pub fn new(feed_key_path: &Path, jwt_secret: &JwtSecret) -> Self {
+    pub fn new(feed_key_path: &Path, jwt_decode_secret: &JwtDecodeSecret) -> Self {
         Self {
             feed_key_path: path::absolute(feed_key_path).unwrap(),
-            jwt_secret: jwt_secret.clone(),
+            jwt_decode_secret: jwt_decode_secret.clone(),
         }
     }
 }
@@ -84,10 +84,10 @@ impl App {
     pub fn new(
         feed_key_path: &Path,
         upload_limit: Option<usize>,
-        jwt_secret: &JwtSecret,
+        jwt_decode_secret: &JwtDecodeSecret,
         enable_api_doc: bool,
     ) -> Self {
-        let state = GlobalState::new(feed_key_path, jwt_secret);
+        let state = GlobalState::new(feed_key_path, jwt_decode_secret);
         Self {
             state,
             upload_limit,

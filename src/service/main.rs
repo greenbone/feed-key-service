@@ -5,7 +5,7 @@
 use std::path::Path;
 
 use greenbone_feed_key::{
-    jwt::JwtSecret,
+    jwt::JwtDecodeSecret,
     service::{app::App, cli::Cli},
 };
 
@@ -20,15 +20,27 @@ fn load_key(key_path: &Path) -> Result<Vec<u8>, String> {
 async fn main() {
     let cli = Cli::default();
     let secret = if let Some(s) = cli.jwt_secret.jwt_shared_secret {
-        Ok(JwtSecret::SharedSecret(s))
+        Ok(JwtDecodeSecret::from_shared_secret(&s))
     } else if let Some(rsa_key_path) = cli.jwt_secret.jwt_rsa_key {
         match load_key(&rsa_key_path) {
-            Ok(key) => Ok(JwtSecret::RsaKey(key)),
+            Ok(key) => match JwtDecodeSecret::from_rsa_pem(&key) {
+                Ok(secret) => Ok(secret),
+                Err(e) => Err(format!(
+                    "Error loading RSA JWT key from {:?}: {}",
+                    rsa_key_path, e
+                )),
+            },
             Err(e) => Err(e),
         }
     } else if let Some(ecdsa_key_path) = cli.jwt_secret.jwt_ecdsa_key {
         match load_key(&ecdsa_key_path) {
-            Ok(key) => Ok(JwtSecret::EcdsaKey(key)),
+            Ok(key) => match JwtDecodeSecret::from_ec_pem(&key) {
+                Ok(secret) => Ok(secret),
+                Err(e) => Err(format!(
+                    "Error loading ECDSA JWT key from {:?}: {}",
+                    ecdsa_key_path, e
+                )),
+            },
             Err(e) => Err(e),
         }
     } else {

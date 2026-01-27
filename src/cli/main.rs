@@ -5,7 +5,7 @@
 use chrono::Duration;
 use greenbone_feed_key::{
     cli::{Cli, cli::Commands},
-    jwt::{Claims, JwtSecret, generate_token},
+    jwt::{Claims, JwtEncodeSecret, generate_token},
 };
 
 fn main() {
@@ -14,10 +14,16 @@ fn main() {
         Commands::Jwt(cmd) => {
             let claims = Claims::new(cmd.subject, Duration::seconds(cmd.duration as i64));
             let secret = if let Some(secret) = cmd.secret.secret {
-                Ok(JwtSecret::SharedSecret(secret))
+                Ok(JwtEncodeSecret::from_shared_secret(&secret))
             } else if let Some(rsa_key_path) = cmd.secret.rsa_key {
                 match std::fs::read(&rsa_key_path) {
-                    Ok(key_data) => Ok(JwtSecret::RsaKey(key_data)),
+                    Ok(key_data) => match JwtEncodeSecret::from_rsa_pem(&key_data) {
+                        Ok(secret) => Ok(secret),
+                        Err(e) => Err(format!(
+                            "Error reading RSA key from {:?}: {}",
+                            rsa_key_path, e,
+                        )),
+                    },
                     Err(e) => Err(format!(
                         "Error reading RSA key from {:?}: {}",
                         rsa_key_path, e,
@@ -25,7 +31,13 @@ fn main() {
                 }
             } else if let Some(ecdsa_key_path) = cmd.secret.ecdsa_key {
                 match std::fs::read(&ecdsa_key_path) {
-                    Ok(key_data) => Ok(JwtSecret::EcdsaKey(key_data)),
+                    Ok(key_data) => match JwtEncodeSecret::from_ec_pem(&key_data) {
+                        Ok(secret) => Ok(secret),
+                        Err(e) => Err(format!(
+                            "Error reading ECDSA key from {:?}: {}",
+                            ecdsa_key_path, e,
+                        )),
+                    },
                     Err(e) => Err(format!(
                         "Error reading ECDSA key from {:?}: {}",
                         ecdsa_key_path, e,
