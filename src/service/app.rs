@@ -48,7 +48,18 @@ async fn shutdown_signal(handle: Handle<SocketAddr>) {
     }
 }
 
-#[derive(Clone)]
+#[derive(Error, Debug)]
+enum AppError {
+    #[error("Invalid IP Address: {0}")]
+    InvalidAddress(String),
+
+    #[error(
+        "Client certificate authentication enabled but no CA certificate chain provided in {0}"
+    )]
+    EmptyClientCertificateChain(PathBuf),
+}
+
+#[derive(Clone, Debug)]
 pub struct GlobalState {
     pub feed_key_path: PathBuf,
     pub jwt_decode_secret: JwtDecodeSecret,
@@ -63,21 +74,11 @@ impl GlobalState {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct App {
     state: GlobalState,
     upload_limit: Option<usize>,
     enable_api_doc: bool,
-}
-
-#[derive(Error, Debug)]
-enum AppError {
-    #[error("Invalid IP Address: {0}")]
-    InvalidAddress(String),
-
-    #[error(
-        "Client certificate authentication enabled but no CA certificate chain provided in {0}"
-    )]
-    EmptyClientCertificateChain(PathBuf),
 }
 
 impl App {
@@ -102,8 +103,15 @@ impl App {
             .init();
     }
 
-    pub fn router(self) -> Router {
-        let state = Arc::new(self.state);
+    pub fn enable_api_documentation(&self) -> Self {
+        Self {
+            enable_api_doc: true,
+            ..self.clone()
+        }
+    }
+
+    pub fn router(&self) -> Router {
+        let state = Arc::new(self.state.clone());
         let mut router =
             Router::new().nest("/api/v1", api::routes(state.clone(), self.upload_limit));
 
