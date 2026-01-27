@@ -55,10 +55,10 @@ pub struct GlobalState {
 }
 
 impl GlobalState {
-    pub fn new(feed_key_path: &Path, jwt_secret: JwtSecret) -> Self {
+    pub fn new(feed_key_path: &Path, jwt_secret: &JwtSecret) -> Self {
         Self {
             feed_key_path: path::absolute(feed_key_path).unwrap(),
-            jwt_secret,
+            jwt_secret: jwt_secret.clone(),
         }
     }
 }
@@ -84,7 +84,7 @@ impl App {
     pub fn new(
         feed_key_path: &Path,
         upload_limit: Option<usize>,
-        jwt_secret: JwtSecret,
+        jwt_secret: &JwtSecret,
         enable_api_doc: bool,
     ) -> Self {
         let state = GlobalState::new(feed_key_path, jwt_secret);
