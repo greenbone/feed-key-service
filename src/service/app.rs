@@ -83,22 +83,23 @@ enum AppError {
 impl App {
     pub fn new(
         feed_key_path: &Path,
-        log: &str,
         upload_limit: Option<usize>,
         jwt_secret: JwtSecret,
         enable_api_doc: bool,
     ) -> Self {
-        tracing_subscriber::registry()
-            .with(tracing_subscriber::EnvFilter::new(log))
-            .with(tracing_subscriber::fmt::layer())
-            .init();
-
         let state = GlobalState::new(feed_key_path, jwt_secret);
         Self {
             state,
             upload_limit,
             enable_api_doc,
         }
+    }
+
+    pub fn init_tracing(&self, log: &str) {
+        tracing_subscriber::registry()
+            .with(tracing_subscriber::EnvFilter::new(log))
+            .with(tracing_subscriber::fmt::layer())
+            .init();
     }
 
     pub fn router(self) -> Router {
