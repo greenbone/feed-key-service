@@ -133,7 +133,7 @@ impl App {
     }
 
     async fn serve_http(
-        self,
+        &self,
         handle: Handle<SocketAddr>,
         address: SocketAddr,
     ) -> Result<(), std::io::Error> {
@@ -145,7 +145,7 @@ impl App {
     }
 
     async fn serve_tls(
-        self,
+        &self,
         handle: Handle<SocketAddr>,
         address: SocketAddr,
         tls_server_cert: &Path,
@@ -160,7 +160,7 @@ impl App {
     }
 
     async fn server_mtls(
-        self,
+        &self,
         handle: Handle<SocketAddr>,
         address: SocketAddr,
         tls_server_cert: &Path,
@@ -198,7 +198,7 @@ impl App {
     }
 
     pub async fn serve(
-        self,
+        &self,
         server: &str,
         port: u16,
         tls_server_cert: Option<&Path>,
