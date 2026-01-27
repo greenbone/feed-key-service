@@ -43,11 +43,11 @@ async fn main() {
     };
     let app = App::new(
         &cli.feed_key_path,
-        &cli.log,
         cli.upload_limit,
         secret,
         cli.enable_api_doc,
     );
+    app.init_tracing(&cli.log);
     let result = app
         .serve(
             &cli.server,
