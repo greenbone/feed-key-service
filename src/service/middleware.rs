@@ -22,7 +22,7 @@ pub async fn authorization_middleware(
         .strip_prefix("Bearer ")
         .ok_or(Error::Unauthorized)?;
 
-    match validate_token(&state.jwt_secret, token) {
+    match validate_token(&state.jwt_decode_secret, token) {
         Ok(_) => Ok(next.run(request).await),
         Err(_) => Err(Error::Unauthorized),
     }
