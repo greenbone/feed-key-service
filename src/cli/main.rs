@@ -63,5 +63,21 @@ fn main() {
                 }
             }
         }
+        Commands::OpenAPI(cmd) => {
+            match greenbone_feed_key::service::openapi::generate_openapi_json() {
+                Ok(json) => {
+                    if let Err(e) = std::fs::write(&cmd.output, json) {
+                        eprintln!("Error writing OpenAPI JSON to {:?}: {}", cmd.output, e);
+                        std::process::exit(1);
+                    } else {
+                        println!("OpenAPI documentation written to {:?}", cmd.output);
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Error generating OpenAPI JSON: {}", e);
+                    std::process::exit(1);
+                }
+            }
+        }
     };
 }

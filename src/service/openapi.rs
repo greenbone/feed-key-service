@@ -49,3 +49,7 @@ pub fn routes() -> AppRouter {
         .route("/", get(|| async { Redirect::permanent("/swagger-ui") }))
         .merge(SwaggerUi::new("/swagger-ui").url("/api/v1/openapi.json", ApiDoc::openapi()))
 }
+
+pub fn generate_openapi_json() -> Result<String, serde_json::Error> {
+    ApiDoc::openapi().to_pretty_json()
+}

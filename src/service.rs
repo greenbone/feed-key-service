@@ -7,4 +7,4 @@ pub mod app;
 pub mod cli;
 pub mod error;
 mod middleware;
-mod openapi;
+pub mod openapi;
