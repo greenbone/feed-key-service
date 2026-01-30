@@ -5,9 +5,11 @@
 Service for Managing a Greenbone Feed Key
 
 - [Installation](#installation)
+- [Usage](#usage)
 - [Settings](#settings)
 - [TLS](#tls)
 - [JWT](#jwt)
+- [CLI](#cli)
 - [Maintainer](#maintainer)
 - [Contributing](#contributing)
 - [License](#license)
@@ -23,6 +25,19 @@ make DESTDIR=path/to/install install
 ```
 
 The binary can be found at `path/to/install/usr/local/bin` afterwards.
+
+## Usage
+
+After installation the service is available as `greenbone-feed-key`. By default
+it listens for http on `127.0.0.1` on port `3000`. Running the service requires
+setting a [JWT] key. See [settings](#settings) the [JWT README](./jwt/README.md)
+for all possible options.
+
+Example using a shared secret
+
+```sh
+greenbone-feed-key --jwt-secret-key some-secret-key
+```
 
 ## Settings
 
@@ -56,6 +71,16 @@ See [TLS documentation](./certs/README.md) for more details
 
 See [JWT documentation](./jwt/README.md) for more details.
 
+## CLI
+
+Additionally to the service the project provides a CLI helper tool
+`greenbone-feed-service-cli`. Currently it implements the following features:
+
+- `jwt` - Generating JSON Web tokens for testing purposes
+- `openapi` - Generating the [OpenAPI] spec file
+
+Run `greenbone-feed-service-cli --help` for more details.
+
 ## Maintainer
 
 This project is maintained by [Greenbone AG][Greenbone].
@@ -77,3 +102,4 @@ Licensed under the [GNU Affero General Public License v3.0 or later](LICENSE).
 [JWT]: https://en.wikipedia.org/wiki/JSON_Web_Token
 [Rust]: https://rust-lang.org/
 [cargo]: https://doc.rust-lang.org/stable/cargo/
+[OpenAPI]: https://www.openapis.org/
