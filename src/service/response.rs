@@ -4,8 +4,9 @@
 
 use axum::{Json, response::IntoResponse};
 use serde::Serialize;
+use utoipa::ToSchema;
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Debug, ToSchema)]
 pub struct JsonResponse {
     status: String,
     message: String,

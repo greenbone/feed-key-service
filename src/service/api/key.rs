@@ -6,7 +6,7 @@ use axum::{
     Router,
     body::Body,
     extract::{DefaultBodyLimit, Multipart, Request, State},
-    http::{StatusCode, header},
+    http::header,
     response::IntoResponse,
     routing::{get, put},
 };
@@ -15,9 +15,11 @@ use tokio_stream::StreamExt;
 use tokio_util::io::{ReaderStream, StreamReader};
 use utoipa::{OpenApi, ToSchema};
 
-use crate::{
-    service::app::{AppRouter, AppState},
-    service::middleware::authorization_middleware,
+use crate::service::{
+    app::{AppRouter, AppState},
+    error::Error,
+    middleware::authorization_middleware,
+    response::JsonResponse,
 };
 
 const KEY_TAG: &str = "Key";
@@ -36,26 +38,48 @@ pub struct KeyApi;
   get,
   path = "",
   responses(
-    (status = 200, description = "Key download OK", body = String, content_type = "application/x-pem-file"),
-    (status = 401, description = "Unauthorized", body = String),
-    (status = 404, description = "Key not available", body = String),
+    (
+        status = 200,
+        description = "Key downloaded successfully",
+        body = String,
+        content_type = "application/x-pem-file"
+    ),
+    (
+        status = 401,
+        description = "Unauthorized",
+        body = JsonResponse,
+        content_type= "application/json",
+        example = json!({"status": "error", "message": "Unauthorized"})
+    ),
+    (
+        status = 404,
+        description = "Key not available",
+        body = JsonResponse,
+        content_type= "application/json",
+        example = json!({"status": "error", "message": "Key not available"})
+    ),
   ),
   tag = KEY_TAG,
   security(("jwt_auth" = []))
 )]
-async fn download_key(
-    State(state): State<AppState>,
-) -> Result<impl IntoResponse, (StatusCode, &'static str)> {
+async fn download_key(State(state): State<AppState>) -> Result<impl IntoResponse, Error> {
     let file = match tokio::fs::File::open(&state.feed_key_path).await {
         Ok(file) => file,
         Err(_) => {
-            return Err((StatusCode::NOT_FOUND, "Key not available"));
+            return Err(Error::KeyNotFound);
         }
     };
     let filename = match state.feed_key_path.file_name() {
         Some(name) => name,
         None => {
-            return Err((StatusCode::BAD_REQUEST, "File name couldn't be determined"));
+            tracing::error!(
+                "Could not determine file name for key file {}",
+                state.feed_key_path.display()
+            );
+            // should not happen, but handle it gracefully
+            return Err(Error::InternalServerError(
+                "Could not determine file name for key file".to_string(),
+            ));
         }
     };
     let content_disposition = format!("attachment; filename=\"{}\"", filename.to_string_lossy());
@@ -75,16 +99,43 @@ async fn download_key(
   put,
   path = "",
   responses(
-    (status = 200, description = "Key upload successful", body = String),
-    (status = 401, description = "Unauthorized", body = String),
-    (status = 500, description = "Key upload failed. File error.", body = String),
-    (status = 500, description = "Key upload failed. Stream error.", body = String),
+    (
+        status = 200,
+        description = "Key uploaded successfully",
+        body = JsonResponse,
+        content_type= "application/json",
+        example = json!({"status": "success", "message": "Key uploaded successfully"})
+    ),
+    (
+        status = 401,
+        description = "Unauthorized",
+        body = JsonResponse,
+        content_type= "application/json",
+        example = json!({"status": "error", "message": "Unauthorized"})
+    ),
+    (
+        status = 500,
+        description = "Key upload failed. File error.",
+        body = JsonResponse,
+        content_type= "application/json",
+        example = json!({"status": "error", "message": "Key upload failed. File error."})
+    ),
+    (
+        status = 500,
+        description = "Key upload failed. Stream error.",
+        body = JsonResponse,
+        content_type= "application/json",
+        example = json!({"status": "error", "message": "Key upload failed. Stream error."})
+    ),
   ),
   tag = KEY_TAG,
   request_body(content(("application/x-pem-file"),("application/octet-stream")), description = "The key file to upload"),
   security(("jwt_auth" = []))
 )]
-async fn upload_key(State(state): State<AppState>, request: Request) -> impl IntoResponse {
+async fn upload_key(
+    State(state): State<AppState>,
+    request: Request,
+) -> Result<JsonResponse, Error> {
     let file = match tokio::fs::File::create(&state.feed_key_path).await {
         Ok(file) => file,
         Err(err) => {
@@ -93,9 +144,8 @@ async fn upload_key(State(state): State<AppState>, request: Request) -> impl Int
                 state.feed_key_path.display(),
                 err
             );
-            return Err((
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "Key upload failed. File error.",
+            return Err(Error::InternalServerError(
+                "Key upload failed. File error.".to_string(),
             ));
         }
     };
@@ -110,7 +160,7 @@ async fn upload_key(State(state): State<AppState>, request: Request) -> impl Int
                 "Successfully wrote key file {}",
                 state.feed_key_path.display()
             );
-            return Ok("Key upload successful");
+            return Ok(JsonResponse::from_success("Key uploaded successfully"));
         }
         Err(err) => {
             tracing::error!(
@@ -118,9 +168,8 @@ async fn upload_key(State(state): State<AppState>, request: Request) -> impl Int
                 state.feed_key_path.display(),
                 err
             );
-            return Err((
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "Key upload failed. Stream error.",
+            return Err(Error::InternalServerError(
+                "Key upload failed. Stream error.".to_string(),
             ));
         }
     }
@@ -130,7 +179,7 @@ async fn upload_key(State(state): State<AppState>, request: Request) -> impl Int
 #[derive(ToSchema)]
 #[allow(unused)]
 struct UploadedForm {
-    #[schema(content_media_type = "application/x-pem-file", format = "binary")]
+    #[schema(content_media_type = "application/octet-stream", format = "binary")]
     file: String,
 }
 
@@ -138,15 +187,64 @@ struct UploadedForm {
 #[utoipa::path(
   post,
   path = "",
-  request_body(content_type = "multipart/formdata", content = inline(UploadedForm), description = "File to upload"),
+  request_body(content_type = "multipart/form-data", content = inline(UploadedForm), description = "File to upload"),
   responses(
-    (status = 200, description = "Key upload successful", body = String),
-    (status = 400, description = "Key upload failed. Invalid multipart data.", body = String),
-    (status = 400, description = "Key upload failed. No file provided.", body = String),
-    (status = 401, description = "Unauthorized", body = String),
-    (status = 500, description = "Key upload failed. File error.", body = String),
-    (status = 500, description = "Key upload failed. Stream error.", body = String),
-    (status = 500, description = "Key upload failed. Could not write to file.", body = String),
+    (
+        status = 200,
+        description = "Key upload successful",
+        body = JsonResponse,
+        content_type= "application/json",
+        example = json!({"status": "success", "message": "Key uploaded successfully"})
+    ),
+    (
+        status = 400,
+        description = "Key upload failed. Invalid multipart data.",
+        body = JsonResponse,
+        content_type= "application/json",
+        example = json!({"status": "error", "message": "Key upload failed. Invalid multipart data."})
+    ),
+    (
+        status = 400,
+        description = "Key upload failed. No file provided.",
+        body = JsonResponse,
+        content_type= "application/json",
+        example = json!({"status": "error", "message": "Key upload failed. No file provided."})
+    ),
+    (
+        status = 400,
+        description = "Key upload failed. Could not read file field.",
+        body = JsonResponse,
+        content_type= "application/json",
+        example = json!({"status": "error", "message": "Key upload failed. Could not read file field."})
+    ),
+    (
+        status = 401,
+        description = "Unauthorized",
+        body = JsonResponse,
+        content_type= "application/json",
+        example = json!({"status": "error", "message": "Unauthorized"})
+    ),
+    (
+        status = 500,
+        description = "Key upload failed. File error.",
+        body = JsonResponse,
+        content_type= "application/json",
+        example = json!({"status": "error", "message": "Key upload failed. File error."})
+    ),
+    (
+        status = 500,
+        description = "Key upload failed. Stream error.",
+        body = JsonResponse,
+        content_type= "application/json",
+        example = json!({"status": "error", "message": "Key upload failed. Stream error."})
+    ),
+    (
+        status = 500,
+        description = "Key upload failed. Could not write to file.",
+        body = JsonResponse,
+        content_type= "application/json",
+        example = json!({"status": "error", "message": "Key upload failed. Could not write to file."})
+    ),
   ),
   tag = KEY_TAG,
   security(("jwt_auth" = []))
@@ -154,15 +252,14 @@ struct UploadedForm {
 async fn upload_key_multipart(
     State(state): State<AppState>,
     mut multipart: Multipart,
-) -> Result<&'static str, (StatusCode, &'static str)> {
+) -> Result<JsonResponse, Error> {
     let field = multipart.next_field().await;
     let field = match field {
         Ok(f) => f,
         Err(err) => {
             tracing::error!("Failed to process multipart upload: {}", err);
-            return Err((
-                StatusCode::BAD_REQUEST,
-                "Key upload failed. Invalid multipart data.",
+            return Err(Error::BadRequest(
+                "Key upload failed. Invalid multipart data.".to_string(),
             ));
         }
     };
@@ -170,9 +267,8 @@ async fn upload_key_multipart(
         Some(f) => f,
         None => {
             tracing::error!("No file provided in multipart upload");
-            return Err((
-                StatusCode::BAD_REQUEST,
-                "Key upload failed. No file provided.",
+            return Err(Error::BadRequest(
+                "Key upload failed. No file provided.".to_string(),
             ));
         }
     };
@@ -180,9 +276,8 @@ async fn upload_key_multipart(
         Some(name) if name == "file" => {}
         _ => {
             tracing::error!("No file provided in multipart upload");
-            return Err((
-                StatusCode::BAD_REQUEST,
-                "Key upload failed. No file provided.",
+            return Err(Error::BadRequest(
+                "Key upload failed. No file provided.".to_string(),
             ));
         }
     };
@@ -194,28 +289,24 @@ async fn upload_key_multipart(
                 state.feed_key_path.display(),
                 err
             );
-            return Err((
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "Key upload failed. File error.",
+            return Err(Error::InternalServerError(
+                "Key upload failed. File error.".to_string(),
             ));
         }
     };
 
     let mut writer = BufWriter::new(file);
-    while let Some(chunk) = field
-        .chunk()
-        .await
-        .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "foo"))?
-    {
+    while let Some(chunk) = field.chunk().await.map_err(|_| {
+        Error::BadRequest("Key upload failed. Could not read file field".to_string())
+    })? {
         if let Err(e) = writer.write(&chunk).await {
             tracing::error!(
                 "Failed to write key file {}: {}",
                 state.feed_key_path.display(),
                 e
             );
-            return Err((
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "Key upload failed. Stream error.",
+            return Err(Error::InternalServerError(
+                "Key upload failed. Stream error.".to_string(),
             ));
         }
     }
@@ -225,16 +316,13 @@ async fn upload_key_multipart(
             state.feed_key_path.display(),
             err
         );
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "Key upload failed. Could not write to file.",
-        )
+        Error::InternalServerError("Key upload failed. Could not write to file.".to_string())
     })?;
     tracing::info!(
         "Successfully wrote key file {}",
         state.feed_key_path.display()
     );
-    Ok("Key upload successful")
+    Ok(JsonResponse::from_success("Key uploaded successfully"))
 }
 
 /// Delete the current feed key.
@@ -242,14 +330,32 @@ async fn upload_key_multipart(
   delete,
   path = "",
   responses(
-    (status = 200, description = "Key deleted successfully", body = String),
-    (status = 401, description = "Unauthorized", body = String),
-    (status = 500, description = "Key deletion failed", body = String),
+    (
+        status = 200,
+        description = "Key deleted successfully",
+        body = JsonResponse,
+        content_type= "application/json",
+        example = json!({"status": "success", "message": "Key deleted successfully"})
+    ),
+    (
+        status = 401,
+        description = "Unauthorized",
+        body = JsonResponse,
+        content_type= "application/json",
+        example = json!({"status": "error", "message": "Unauthorized"})
+    ),
+    (
+        status = 500,
+        description = "Key deletion failed",
+        body = JsonResponse,
+        content_type= "application/json",
+        example = json!({"status": "error", "message": "Key deletion failed"})
+    ),
   ),
   tag = KEY_TAG,
   security(("jwt_auth" = []))
 )]
-async fn delete_key(State(state): State<AppState>) -> impl IntoResponse {
+async fn delete_key(State(state): State<AppState>) -> Result<JsonResponse, Error> {
     match state.feed_key_path.try_exists() {
         Ok(exists) => {
             if !exists {
@@ -257,7 +363,7 @@ async fn delete_key(State(state): State<AppState>) -> impl IntoResponse {
                     "Key file {} does not exist, nothing to delete",
                     state.feed_key_path.display()
                 );
-                return Ok("Key deleted successfully");
+                return Ok(JsonResponse::from_success("Key deleted successfully"));
             }
         }
         Err(_) => {
@@ -265,7 +371,7 @@ async fn delete_key(State(state): State<AppState>) -> impl IntoResponse {
                 "Failed to check existence of key file {}",
                 state.feed_key_path.display()
             );
-            return Err((StatusCode::INTERNAL_SERVER_ERROR, "Key deletion failed"));
+            return Err(Error::KeyDeletionFailed);
         }
     }
 
@@ -275,7 +381,7 @@ async fn delete_key(State(state): State<AppState>) -> impl IntoResponse {
                 "Successfully deleted key file {}",
                 state.feed_key_path.display()
             );
-            return Ok("Key deleted successfully");
+            return Ok(JsonResponse::from_success("Key deleted successfully"));
         }
         Err(err) => {
             tracing::error!(
@@ -283,7 +389,7 @@ async fn delete_key(State(state): State<AppState>) -> impl IntoResponse {
                 state.feed_key_path.display(),
                 err
             );
-            return Err((StatusCode::INTERNAL_SERVER_ERROR, "Key deletion failed"));
+            return Err(Error::KeyDeletionFailed);
         }
     }
 }

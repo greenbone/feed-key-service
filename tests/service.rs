@@ -83,6 +83,20 @@ fn the_user_is_authenticated(world: &mut ServiceWorld) {
     world.authenticated = true;
 }
 
+#[given("the feed key file is not writable")]
+fn the_key_file_is_not_writable(world: &mut ServiceWorld) {
+    let path = world
+        .tempfile_path
+        .as_ref()
+        .expect("No tempfile path available");
+    let mut permissions = std::fs::metadata(path)
+        .expect("Could not get file metadata")
+        .permissions();
+    permissions.set_readonly(true);
+    tracing::info!("Setting feed key file {:?} to read-only", path);
+    std::fs::set_permissions(path, permissions).expect("Could not set file permissions");
+}
+
 #[when(
     regex = r"^I send a (GET|DELETE|POST|PUT) request to the (key endpoint|health endpoint|API documentation|swagger UI)$"
 )]
@@ -138,21 +152,39 @@ async fn i_send_an_upload_request(world: &mut ServiceWorld, body: String, method
     } else {
         builder
     };
-    let request = match method.as_str() {
-        "POST" => {
-            let mut form = MultipartForm::default();
-            form.add_text("file", body);
-            let content_type = form.content_type();
-            let multipart_body = MultipartBody::from(form);
-            builder
-                .header("Content-Type", content_type)
-                .body(Body::from_stream(multipart_body))
-                .expect("Could not build request body")
-        }
-        _ => builder
-            .body(Body::from(body))
-            .expect("Could not build request body"),
+    let request = builder
+        .body(Body::from(body))
+        .expect("Could not build request body");
+    let router = world.app.as_ref().expect("service not available").router();
+    let result = router.oneshot(request).await.expect("Request failed");
+    world.response = Some(result);
+}
+
+#[when(regex = r"^I post the field '(.+)' with content '(.+)' to the key endpoint$")]
+async fn i_post_the_field_with_content_to_the_key_endpoint(
+    world: &mut ServiceWorld,
+    field_name: String,
+    field_content: String,
+) {
+    let builder = Request::builder().uri(KEY_API).method("POST");
+    let builder = if world.authenticated {
+        let jwt = generate_token(
+            world.encode_secret.as_ref().expect("secret not available"),
+            &Claims::new("test_user".to_string(), Duration::minutes(10)),
+        )
+        .unwrap();
+        builder.header("Authorization", format!("Bearer {}", jwt))
+    } else {
+        builder
     };
+    let mut form = MultipartForm::default();
+    form.add_text(field_name, field_content);
+    let content_type = form.content_type();
+    let multipart_body = MultipartBody::from(form);
+    let request = builder
+        .header("Content-Type", content_type)
+        .body(Body::from_stream(multipart_body))
+        .expect("Could not build request body");
     let router = world.app.as_ref().expect("service not available").router();
     let result = router.oneshot(request).await.expect("Request failed");
     world.response = Some(result);
@@ -230,10 +262,38 @@ fn then_a_feed_key_exists_in_the_system(world: &mut ServiceWorld) {
     assert!(path.exists(), "Feed key file should exist");
 }
 
+#[then(regex = r"^the feed key in the system should be '(.+)'$")]
+async fn the_feed_key_in_the_system_should_be(world: &mut ServiceWorld, expected_key: String) {
+    let path = world
+        .tempfile_path
+        .as_ref()
+        .expect("No tempfile path available");
+    let key = tokio::fs::read_to_string(path)
+        .await
+        .expect("Could not read feed key file");
+    assert_eq!(key, expected_key);
+}
+
+#[then(expr = "the JSON message should be {string}")]
+fn the_json_message_should_be(world: &mut ServiceWorld, expected_message: String) {
+    let json = world
+        .response_json
+        .as_ref()
+        .expect("No JSON response stored");
+    let message = json
+        .get("message")
+        .expect("No 'message' field in JSON response")
+        .as_str()
+        .expect("'message' field is not a string");
+
+    assert_eq!(message, expected_message);
+}
+
 #[tokio::main]
 async fn main() {
     ServiceWorld::cucumber()
         .fail_on_skipped()
+        // .init_tracing()
         .run("tests/features")
         .await;
 }
