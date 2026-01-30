@@ -5,7 +5,7 @@
 use axum::{Router, routing::get};
 use utoipa::OpenApi;
 
-use crate::service::app::AppRouter;
+use crate::service::{app::AppRouter, response::JsonResponse};
 
 const HEALTH_TAG: &str = "Health";
 
@@ -22,12 +22,18 @@ pub struct HealthApi;
   get,
   path = "",
   responses(
-    (status = 200, description = "Health check OK", body = String)
+    (
+      status = 200,
+      description = "Health check OK",
+      body = JsonResponse,
+      content_type= "application/json",
+      example = json!({"status": "success", "message": "OK server is healthy"})
+    ),
   ),
   tag = HEALTH_TAG,
 )]
-async fn health_check() -> &'static str {
-    "OK server is healthy"
+async fn health_check() -> JsonResponse {
+    JsonResponse::from_success("OK server is healthy")
 }
 
 pub fn routes() -> AppRouter {

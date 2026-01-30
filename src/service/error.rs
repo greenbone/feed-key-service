@@ -14,12 +14,30 @@ use crate::service::response::JsonResponse;
 pub enum Error {
     #[error("Unauthorized")]
     Unauthorized,
+    #[error("Key deletion failed")]
+    KeyDeletionFailed,
+    #[error("Key not available")]
+    KeyNotFound,
+    #[error("Internal server error: {0}")]
+    InternalServerError(String),
+    #[error("Bad request: {0}")]
+    BadRequest(String),
 }
 
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
         let (status, error_message): (StatusCode, String) = match self {
             Error::Unauthorized => (StatusCode::UNAUTHORIZED, Error::Unauthorized.to_string()),
+            Error::KeyDeletionFailed => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Error::KeyDeletionFailed.to_string(),
+            ),
+            Error::KeyNotFound => (StatusCode::NOT_FOUND, Error::KeyNotFound.to_string()),
+            Error::InternalServerError(msg) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Error::InternalServerError(msg).to_string(),
+            ),
+            Error::BadRequest(msg) => (StatusCode::BAD_REQUEST, Error::BadRequest(msg).to_string()),
         };
         (status, JsonResponse::from_error(&error_message)).into_response()
     }
