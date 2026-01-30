@@ -30,7 +30,8 @@ const KEY_CONTENT: &str = "SOME-ENTERPRISE-FEED-KEY";
 struct ServiceWorld {
     app: Option<App>,
     authenticated: bool,
-    result: Option<Response>,
+    response: Option<Response>,
+    response_json: Option<serde_json::Value>,
     encode_secret: Option<JwtEncodeSecret>,
     decode_secret: Option<JwtDecodeSecret>,
     tempfile_path: Option<PathBuf>,
@@ -116,7 +117,7 @@ async fn i_send_a_request(world: &mut ServiceWorld, method: String, endpoint: St
         .expect("Could not build request body");
     let router = world.app.as_ref().expect("service not available").router();
     let result = router.oneshot(request).await.expect("Request failed");
-    world.result = Some(result);
+    world.response = Some(result);
 }
 
 #[when(regex = r"^I upload the feed key '(.+)' via a (POST|PUT) request to the key endpoint$")]
@@ -154,12 +155,12 @@ async fn i_send_an_upload_request(world: &mut ServiceWorld, body: String, method
     };
     let router = world.app.as_ref().expect("service not available").router();
     let result = router.oneshot(request).await.expect("Request failed");
-    world.result = Some(result);
+    world.response = Some(result);
 }
 
 #[then(expr = "the response status code should be {int}")]
 fn the_response_status_code_should_be(world: &mut ServiceWorld, status_code: u16) {
-    let response = world.result.as_ref().expect("No response stored");
+    let response = world.response.as_ref().expect("No response stored");
     assert_eq!(
         response.status(),
         StatusCode::from_u16(status_code).unwrap()
@@ -168,7 +169,7 @@ fn the_response_status_code_should_be(world: &mut ServiceWorld, status_code: u16
 
 #[then(expr = "the response body should be {string}")]
 async fn the_response_body_should_be_ok(world: &mut ServiceWorld, expected_body: String) {
-    let response = world.result.take().expect("No response stored");
+    let response = world.response.take().expect("No response stored");
     let (req_parts, req_body) = response.into_parts();
     let body_bytes = axum::body::to_bytes(req_body, usize::MAX).await.unwrap();
     let body_str = std::str::from_utf8(&body_bytes).unwrap();
@@ -176,20 +177,21 @@ async fn the_response_body_should_be_ok(world: &mut ServiceWorld, expected_body:
     assert_eq!(body_str, expected_body);
 
     let req = Response::from_parts(req_parts, Body::from(body_bytes));
-    world.result = Some(req);
+    world.response = Some(req);
 }
 
 #[then("the response body should be valid JSON")]
 async fn the_response_body_should_be_valid_json(world: &mut ServiceWorld) {
-    let response = world.result.take().expect("No response stored");
+    let response = world.response.take().expect("No response stored");
     let (req_parts, req_body) = response.into_parts();
     let body_bytes = axum::body::to_bytes(req_body, usize::MAX).await.unwrap();
 
-    let _json: serde_json::Value =
+    let json: serde_json::Value =
         serde_json::from_slice(&body_bytes).expect("Response body is not valid JSON");
+    world.response_json = Some(json);
 
     let req = Response::from_parts(req_parts, Body::from(body_bytes));
-    world.result = Some(req);
+    world.response = Some(req);
 }
 
 #[then(expr = "the response body should contain the OpenAPI version {string}")]
@@ -197,12 +199,10 @@ async fn the_response_body_should_contain_the_openapi_version(
     world: &mut ServiceWorld,
     expected_version: String,
 ) {
-    let response = world.result.take().expect("No response stored");
-    let (req_parts, req_body) = response.into_parts();
-    let body_bytes = axum::body::to_bytes(req_body, usize::MAX).await.unwrap();
-
-    let json: serde_json::Value =
-        serde_json::from_slice(&body_bytes).expect("Response body is not valid JSON");
+    let json = world
+        .response_json
+        .as_ref()
+        .expect("No JSON response stored");
     let openapi_version = json
         .get("openapi")
         .expect("No 'openapi' field in JSON response")
@@ -210,9 +210,6 @@ async fn the_response_body_should_contain_the_openapi_version(
         .expect("'openapi' field is not a string");
 
     assert_eq!(openapi_version, expected_version);
-
-    let req = Response::from_parts(req_parts, Body::from(body_bytes));
-    world.result = Some(req);
 }
 
 #[then("no feed key exists in the system")]
