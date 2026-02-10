@@ -45,4 +45,4 @@ utoipa-swagger-ui = { version = "9.0.2", features = ["axum"] }
 [dev-dependencies]
 cucumber = { version = "0.22.1", features = ["tracing"] }
 rust-multipart-rfc7578_2 = "0.8.0"
-tempfile = "3.24.0"
+tempfile = "3.25.0"
