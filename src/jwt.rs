@@ -101,7 +101,7 @@ pub fn validate_token(
         JwtDecodeSecret::RsaKey(key, alg) => (key, Validation::new(*alg)),
         JwtDecodeSecret::EcdsaKey(key, alg) => (key, Validation::new(*alg)),
     };
-    let token_data = jsonwebtoken::decode::<Claims>(token, &decoding_key, &validation)?;
+    let token_data = jsonwebtoken::decode::<Claims>(token, decoding_key, &validation)?;
     Ok(token_data.claims)
 }
 
@@ -115,7 +115,7 @@ pub fn generate_token(
         JwtEncodeSecret::RsaKey(key, alg) => (key, Header::new(*alg)),
         JwtEncodeSecret::EcdsaKey(key, alg) => (key, Header::new(*alg)),
     };
-    jsonwebtoken::encode(&header, &claims, &encoding_key)
+    jsonwebtoken::encode(&header, &claims, encoding_key)
 }
 
 #[cfg(test)]

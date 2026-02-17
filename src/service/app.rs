@@ -212,22 +212,20 @@ impl App {
         let handle = Handle::new();
         tokio::spawn(shutdown_signal(handle.clone()));
 
-        if tls_server_cert.is_some() && tls_server_key.is_some() {
-            let tls_server_cert = tls_server_cert.unwrap();
-            let tls_server_key = tls_server_key.unwrap();
+        if let (Some(tls_server_cert), Some(tls_server_key)) = (tls_server_cert, tls_server_key) {
             match tls_client_certs {
-                Some(client_cert) => self
-                    .server_mtls(
+                Some(client_cert) => {
+                    self.server_mtls(
                         handle,
                         socket_address,
-                        &tls_server_cert,
-                        &tls_server_key,
-                        &client_cert,
+                        tls_server_cert,
+                        tls_server_key,
+                        client_cert,
                     )
                     .await
-                    .map_err(|e| e.into()),
+                }
                 None => self
-                    .serve_tls(handle, socket_address, &tls_server_cert, &tls_server_key)
+                    .serve_tls(handle, socket_address, tls_server_cert, tls_server_key)
                     .await
                     .map_err(|e| e.into()),
             }

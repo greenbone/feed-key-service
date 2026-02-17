@@ -150,8 +150,7 @@ async fn upload_key(
         }
     };
     let stream = request.into_body().into_data_stream();
-    let stream = stream
-        .map(|result| result.map_err(|err| std::io::Error::new(std::io::ErrorKind::Other, err)));
+    let stream = stream.map(|result| result.map_err(std::io::Error::other));
     let mut reader = StreamReader::new(stream);
     let mut writer = BufWriter::new(file);
     match tokio::io::copy(&mut reader, &mut writer).await {
@@ -160,7 +159,7 @@ async fn upload_key(
                 "Successfully wrote key file {}",
                 state.feed_key_path.display()
             );
-            return Ok(JsonResponse::from_success("Key uploaded successfully"));
+            Ok(JsonResponse::from_success("Key uploaded successfully"))
         }
         Err(err) => {
             tracing::error!(
@@ -168,9 +167,9 @@ async fn upload_key(
                 state.feed_key_path.display(),
                 err
             );
-            return Err(Error::InternalServerError(
+            Err(Error::InternalServerError(
                 "Key upload failed. Stream error.".to_string(),
-            ));
+            ))
         }
     }
 }
@@ -273,7 +272,7 @@ async fn upload_key_multipart(
         }
     };
     match field.name() {
-        Some(name) if name == "file" => {}
+        Some("file") => {}
         _ => {
             tracing::error!("No file provided in multipart upload");
             return Err(Error::BadRequest(
@@ -381,7 +380,7 @@ async fn delete_key(State(state): State<AppState>) -> Result<JsonResponse, Error
                 "Successfully deleted key file {}",
                 state.feed_key_path.display()
             );
-            return Ok(JsonResponse::from_success("Key deleted successfully"));
+            Ok(JsonResponse::from_success("Key deleted successfully"))
         }
         Err(err) => {
             tracing::error!(
@@ -389,7 +388,7 @@ async fn delete_key(State(state): State<AppState>) -> Result<JsonResponse, Error
                 state.feed_key_path.display(),
                 err
             );
-            return Err(Error::KeyDeletionFailed);
+            Err(Error::KeyDeletionFailed)
         }
     }
 }

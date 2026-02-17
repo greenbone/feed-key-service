@@ -2,5 +2,5 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-pub use crate::cli::cli::Cli;
-pub mod cli;
+pub use crate::cli::parser::Cli;
+pub mod parser;
