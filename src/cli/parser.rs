@@ -70,11 +70,11 @@ mod tests {
     use super::*;
 
     fn try_parse_jwt_from(args: Vec<&str>) -> Result<Cli, clap::Error> {
-        Cli::try_parse_from(vec!["test", "jwt"].into_iter().chain(args.into_iter()))
+        Cli::try_parse_from(vec!["test", "jwt"].into_iter().chain(args))
     }
 
     fn try_parse_openapi_from(args: Vec<&str>) -> Result<Cli, clap::Error> {
-        Cli::try_parse_from(vec!["test", "openapi"].into_iter().chain(args.into_iter()))
+        Cli::try_parse_from(vec!["test", "openapi"].into_iter().chain(args))
     }
 
     fn parse_jwt_from(args: Vec<&str>) -> JwtCommand {

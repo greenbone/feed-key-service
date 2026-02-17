@@ -4,7 +4,7 @@
 
 use chrono::Duration;
 use greenbone_feed_key::{
-    cli::{Cli, cli::Commands},
+    cli::{Cli, parser::Commands},
     jwt::{Claims, JwtEncodeSecret, generate_token},
 };
 

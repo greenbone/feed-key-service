@@ -94,7 +94,7 @@ mod tests {
     use super::*;
 
     fn try_parse_from(args: Vec<&str>) -> Result<Cli, clap::error::Error> {
-        Cli::try_parse_from(vec!["test"].into_iter().chain(args.into_iter()))
+        Cli::try_parse_from(vec!["test"].into_iter().chain(args))
     }
 
     fn try_parse_from_with_required(args: Vec<&str>) -> Result<Cli, clap::error::Error> {
@@ -114,7 +114,7 @@ mod tests {
             PathBuf::from("/etc/gvm/greenbone-enterprise-feed-key")
         );
         assert_eq!(cli.log, format!("{}=info", env!("CARGO_CRATE_NAME")));
-        assert_eq!(cli.enable_api_doc, false);
+        assert!(!cli.enable_api_doc);
         assert_eq!(cli.tls_server_cert, None);
         assert_eq!(cli.tls_server_key, None);
         assert_eq!(cli.tls_client_certs, None);
@@ -252,6 +252,6 @@ mod tests {
     #[test]
     fn test_parse_enable_api_doc() {
         let cli = try_parse_from_with_required(vec!["--enable-api-doc"]).unwrap();
-        assert_eq!(cli.enable_api_doc, true);
+        assert!(cli.enable_api_doc);
     }
 }

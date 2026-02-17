@@ -65,7 +65,7 @@ pub fn create_client_root_cert_store(
     for cert in client_certs {
         root_store
             .add(cert)
-            .map_err(|e| CertificateError::RootCertStoreError(e))?;
+            .map_err(CertificateError::RootCertStoreError)?;
     }
     tracing::debug!(client_certs_len = ?root_store.len(), "client cert store created successfully");
     if root_store.is_empty() {
