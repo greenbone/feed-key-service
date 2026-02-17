@@ -1,4 +1,4 @@
-.PHONY: test test-integration test-unit build clean build-release run
+.PHONY: test test-integration test-unit build clean build-release run install lint check-format format
 
 INSTALL_PREFIX ?= /usr/local
 
@@ -22,6 +22,15 @@ clean:
 
 install:
 	cargo install --path . --root $(DESTDIR)$(INSTALL_PREFIX)
+
+lint:
+	cargo clippy --all-targets -- -D warnings
+
+check-format:
+	cargo fmt --all -- --check
+
+format:
+	cargo fmt --all
 
 run:
 	cargo run --bin greenbone-feed-key
