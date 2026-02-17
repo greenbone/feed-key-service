@@ -1,4 +1,4 @@
-name: Release gsad
+name: Release feed-key-service
 
 on:
   pull_request:
