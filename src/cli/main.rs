@@ -3,10 +3,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use chrono::Duration;
-use greenbone_feed_key::{
-    cli::{Cli, parser::Commands},
-    jwt::{Claims, JwtEncodeSecret, generate_token},
-};
+use greenbone_feed_key::cli::{Cli, parser::Commands};
+use gvm_auth::jwt::{Claims, JwtEncodeSecret, generate_token};
 
 fn main() {
     let cli = Cli::default();

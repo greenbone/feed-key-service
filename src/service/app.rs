@@ -4,6 +4,7 @@
 
 use axum::{Router, http::StatusCode, response::IntoResponse};
 use axum_server::{Handle, tls_rustls::RustlsConfig};
+use gvm_auth::jwt::JwtDecodeSecret;
 use rustls::{ServerConfig, server::WebPkiClientVerifier};
 use std::{
     error::Error,
@@ -22,7 +23,6 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use crate::{
     certs::{create_client_root_cert_store, load_certificate, load_private_key},
-    jwt::JwtDecodeSecret,
     service::{api, openapi},
 };
 

@@ -11,10 +11,8 @@ use axum::{
 };
 use chrono::Duration;
 use cucumber::{World, given, then, when};
-use greenbone_feed_key::{
-    jwt::{Claims, JwtDecodeSecret, JwtEncodeSecret, generate_token},
-    service::app::App,
-};
+use greenbone_feed_key::service::app::App;
+use gvm_auth::jwt::{Claims, JwtDecodeSecret, JwtEncodeSecret, generate_token};
 use rust_multipart_rfc7578_2::client::multipart::Body as MultipartBody;
 use rust_multipart_rfc7578_2::client::multipart::Form as MultipartForm;
 use tower::ServiceExt;
