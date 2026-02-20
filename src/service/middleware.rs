@@ -7,8 +7,9 @@ use axum::{
     middleware::Next,
     response::Response,
 };
+use gvm_auth::jwt::validate_token;
 
-use crate::{jwt::validate_token, service::app::AppState, service::error::Error};
+use crate::{service::app::AppState, service::error::Error};
 
 pub async fn authorization_middleware(
     State(state): State<AppState>,

@@ -4,10 +4,8 @@
 
 use std::path::Path;
 
-use greenbone_feed_key::{
-    jwt::JwtDecodeSecret,
-    service::{app::App, cli::Cli},
-};
+use greenbone_feed_key::service::{app::App, cli::Cli};
+use gvm_auth::jwt::JwtDecodeSecret;
 
 fn load_key(key_path: &Path) -> Result<Vec<u8>, String> {
     match std::fs::read(key_path) {

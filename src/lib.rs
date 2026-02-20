@@ -4,5 +4,4 @@
 
 pub mod certs;
 pub mod cli;
-pub mod jwt;
 pub mod service;
