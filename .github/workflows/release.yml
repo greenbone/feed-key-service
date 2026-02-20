@@ -16,6 +16,10 @@ on:
         type: string
         description: Set an explicit version, that will overwrite release-type. Fails if version is not compliant.
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-and-release:
     name: Create a new release
@@ -33,6 +37,9 @@ jobs:
           contains(github.event.pull_request.labels.*.name, 'major release')) &&
           github.event.pull_request.merged == true )
     runs-on: "ubuntu-latest"
+    outputs:
+      git-release-tag: ${{ steps.release.outputs.git-release-tag }}
+      release-version: ${{ steps.release-version.outputs.release-version }}
     steps:
       - name: Selecting the Release type
         id: release-type
@@ -69,10 +76,56 @@ jobs:
           github-user: ${{ secrets.GREENBONE_BOT }}
           github-user-mail: ${{ secrets.GREENBONE_BOT_MAIL }}
           github-user-token: ${{ secrets.GREENBONE_BOT_TOKEN }}
-          gpg-key: ${{ secrets.GPG_KEY }}
-          gpg-fingerprint: ${{ secrets.GPG_FINGERPRINT }}
-          gpg-passphrase: ${{ secrets.GPG_PASSPHRASE }}
           release-version: ${{ steps.release-version.outputs.release-version }}
           changelog: /tmp/changelog.md
           ref: ${{ steps.release-type.outputs.release-ref }}
           versioning-scheme: "semver"
+          next-version: "false"
+          sign-release-files: "false"
+
+  build-binaries:
+    name: Build binary artifacts
+    runs-on: "ubuntu-latest"
+    container: rust:slim-bookworm
+    needs: build-and-release
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.build-and-release.outputs.git-release-tag }}
+      - name: Build project
+        run: |
+          mkdir -p /tmp/install
+          DESTDIR=/tmp/install make install
+      - name: Create tarballs
+        run: |
+          tar -C /tmp/install -czvf feed-key-service-${{ needs.build-and-release.outputs.release-version }}-binaries.tar.gz .
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f #v6.0.0
+        with:
+          name: feed-key-service-${{ needs.build-and-release.outputs.release-version }}-binaries
+          path: feed-key-service-${{ needs.build-and-release.outputs.release-version }}-binaries.tar.gz
+
+  upload-and-sign-release-files:
+    name: Upload and sign release files
+    runs-on: "ubuntu-latest"
+    needs:
+      - build-and-release
+      - build-binaries
+    steps:
+      - name: Download release artifacts
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 #v7.0.0
+        with:
+          name: feed-key-service-${{ needs.build-and-release.outputs.release-version }}-binaries
+      - name: Upload release artifacts to GitHub Release
+        run: |
+          gh release upload --repo ${{ github.repository }} ${{ needs.build-and-release.outputs.git-release-tag }} feed-key-service-${{ needs.build-and-release.outputs.release-version }}-binaries.tar.gz
+        env:
+          GH_TOKEN: ${{ secrets.GREENBONE_BOT_TOKEN }}
+      - name: Sign release files
+        uses: greenbone/actions/sign-release-files@v3
+        with:
+          gpg-key: ${{ secrets.GPG_KEY }}
+          gpg-fingerprint: ${{ secrets.GPG_FINGERPRINT }}
+          gpg-passphrase: ${{ secrets.GPG_PASSPHRASE }}
+          release-version: ${{ needs.build-and-release.outputs.release-version }}
+          github-token: ${{ secrets.GREENBONE_BOT_TOKEN }}
