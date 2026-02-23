@@ -1,6 +1,6 @@
 [package]
 name = "greenbone-feed-key"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2024"
 description = "A Service for Uploading a Greenbone Feed Key"
 publish = false
