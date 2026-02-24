@@ -20,7 +20,7 @@ harness = false
 [dependencies]
 axum = { version = "0.8.8", features = ["http2", "multipart"] }
 axum-server = { version = "0.8.0", features = ["tls-rustls"] }
-chrono = "0.4.43"
+chrono = "0.4.44"
 clap = { version = "4.5.59", features = ["derive", "env"] }
 gvm-auth = "0.1.4"
 jsonwebtoken = { version = "10.3.0", features = ["aws_lc_rs"] }
