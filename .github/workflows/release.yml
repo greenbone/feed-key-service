@@ -105,7 +105,7 @@ jobs:
         run: |
           tar -C /tmp/install -czvf feed-key-service-${{ needs.build-and-release.outputs.release-version }}-binaries.tar.gz .
       - name: Upload Artifacts
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f #v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f #v7.0.0
         with:
           name: feed-key-service-${{ needs.build-and-release.outputs.release-version }}-binaries
           path: feed-key-service-${{ needs.build-and-release.outputs.release-version }}-binaries.tar.gz
