@@ -3,13 +3,13 @@
 INSTALL_PREFIX ?= /usr/local
 
 test:
-	cargo test --verbose
+	cargo test
 
 test-integration:
-	cargo test --test service --verbose
+	cargo test --test service
 
 test-unit:
-	cargo test --lib --verbose
+	cargo test --lib
 
 build:
 	cargo build --verbose
