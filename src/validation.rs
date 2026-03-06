@@ -47,6 +47,12 @@ impl PlainFeedKeyValidator {
     }
 }
 
+impl Default for PlainFeedKeyValidator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl FeedKeyValidator for PlainFeedKeyValidator {
     fn push(&mut self, line: &str) -> Result<(), FeedKeyValidationError> {
         let state = self.state.push(line)?;
@@ -70,6 +76,12 @@ impl Base64FeedKeyValidator {
             validator: PlainFeedKeyValidator::new(),
             current_line: String::new(),
         }
+    }
+}
+
+impl Default for Base64FeedKeyValidator {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
