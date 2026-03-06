@@ -5,3 +5,4 @@
 pub mod certs;
 pub mod cli;
 pub mod service;
+pub mod validation;
