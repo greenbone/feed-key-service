@@ -35,10 +35,10 @@ Feature: Enterprise Feed Key
       Given the user is authenticated
 
     Scenario: If the user is authenticated, it should be possible to retrieve the feed key
-      Given a feed key exists in the system
+      Given a valid feed key exists in the system
       When I send a GET request to the key endpoint
       Then the response status code should be 200
-      And the response body should be 'SOME-ENTERPRISE-FEED-KEY'
+      And the response body should contain the valid feed key
 
     Scenario: If the user is authenticated and no feed key has been uploaded yet, the key retrieval should return an error
       Given no feed key exists in the system
@@ -53,7 +53,7 @@ Feature: Enterprise Feed Key
       Given the user is authenticated
 
     Scenario: If the user is authenticated and a feed key exists, it should be possible to delete the feed key
-      Given a feed key exists in the system
+      Given a valid feed key exists in the system
       When I send a DELETE request to the key endpoint
       Then the response status code should be 200
       And no feed key exists in the system
@@ -75,41 +75,50 @@ Feature: Enterprise Feed Key
 
     Scenario: If the user is authenticated, it should be possible to upload a new feed key via a multipart form
       Given no feed key exists in the system
-      When I post the field 'file' with content 'SOME-ENTERPRISE-FEED-KEY' to the key endpoint
+      When I post the field 'file' with a valid feed key to the key endpoint
       Then the response status code should be 200
       And a feed key exists in the system
+      And the feed key file should have the same content as the valid feed key
       And the response body should be valid JSON
       And the JSON message should be "Key uploaded successfully"
 
     Scenario: If the user is authenticated and a feed key already exists, it should be possible to update the feed key via a form
-      Given a feed key exists in the system
-      When I post the field 'file' with content 'ANOTHER-ENTERPRISE-FEED-KEY' to the key endpoint
+      Given a valid feed key exists in the system
+      When I post the field 'file' with a valid feed key to the key endpoint
       Then the response status code should be 200
-      And the feed key in the system should be 'ANOTHER-ENTERPRISE-FEED-KEY'
+      And a feed key exists in the system
+      And the feed key file should have the same content as the valid feed key
       And the response body should be valid JSON
       And the JSON message should be "Key uploaded successfully"
 
     Scenario: If the user is authenticated and not using a multipart form, it should be possible to upload a new feed key
       Given no feed key exists in the system
-      When I upload the feed key 'SOME-ENTERPRISE-FEED-KEY' via a POST request to the key endpoint
+      When I upload a valid feed key via a POST request to the key endpoint
       Then the response status code should be 400
       And no feed key exists in the system
 
     Scenario: If the user is authenticated and the key file is not writable, uploading a feed key should return an error
-      Given a feed key exists in the system
+      Given a valid feed key exists in the system
       Given the feed key file is not writable
-      When I post the field 'file' with content 'SOME-ENTERPRISE-FEED-KEY' to the key endpoint
+      When I post the field 'file' with a valid feed key to the key endpoint
       Then the response status code should be 500
       And the response body should be valid JSON
       And the JSON message should be "Internal server error: Key upload failed. File error."
 
     Scenario: If the user is authenticated, uploading a feed key with a wrong field should return an error
-      Given a feed key exists in the system
+      Given a valid feed key exists in the system
       Given the feed key file is not writable
-      When I post the field 'wrong_field' with content 'SOME-ENTERPRISE-FEED-KEY' to the key endpoint
+      When I post the field 'wrong_field' with a valid feed key to the key endpoint
       Then the response status code should be 400
       And the response body should be valid JSON
       And the JSON message should be "Bad request: Key upload failed. No file provided."
+
+    Scenario: If the user is authenticated, uploading an invalid feed key should return an error
+      Given no feed key exists in the system
+      When I post the field 'file' with an invalid feed key to the key endpoint
+      Then the response status code should be 400
+      And the response body should be valid JSON
+      And the JSON message should be "Bad request: Key upload failed. Failed to validate key. Invalid Key data"
 
   Rule: Updating the key
 
@@ -118,24 +127,42 @@ Feature: Enterprise Feed Key
 
     Scenario: If the user is authenticated, it should be possible to update the feed key
       Given no feed key exists in the system
-      When I upload the feed key 'SOME-ENTERPRISE-FEED-KEY' via a PUT request to the key endpoint
+      When I upload a valid feed key via a PUT request to the key endpoint
       Then the response status code should be 200
       And a feed key exists in the system
+      And the feed key file should have the same content as the valid feed key
       And the response body should be valid JSON
       And the JSON message should be "Key uploaded successfully"
 
     Scenario: If the user is authenticated and a feed key already exists, it should be possible to update the feed key
-      Given a feed key exists in the system
-      When I upload the feed key 'ANOTHER-ENTERPRISE-FEED-KEY' via a PUT request to the key endpoint
+      Given a valid feed key exists in the system
+      When I upload a valid feed key via a PUT request to the key endpoint
       Then the response status code should be 200
-      And the feed key in the system should be 'ANOTHER-ENTERPRISE-FEED-KEY'
+      And a feed key exists in the system
+      And the feed key file should have the same content as the valid feed key
       And the response body should be valid JSON
       And the JSON message should be "Key uploaded successfully"
 
+    Scenario: If the user is authenticated and a feed key already exists, the key should not be updated if the user uploads an invalid feed key
+      Given a valid feed key exists in the system
+      When I upload an invalid feed key via a PUT request to the key endpoint
+      Then the response status code should be 400
+      And a feed key exists in the system
+      And the feed key file should have the same content as the valid feed key
+      And the response body should be valid JSON
+      And the JSON message should be "Bad request: Key upload failed. Failed to validate key. Invalid Key data"
+
     Scenario: If the user is authenticated and the key file is not writable, updating the feed key should return an error
-      Given a feed key exists in the system
+      Given a valid feed key exists in the system
       Given the feed key file is not writable
-      When I upload the feed key 'SOME-ENTERPRISE-FEED-KEY' via a PUT request to the key endpoint
+      When I upload a valid feed key via a PUT request to the key endpoint
       Then the response status code should be 500
       And the response body should be valid JSON
       And the JSON message should be "Internal server error: Key upload failed. File error."
+
+    Scenario: If the user is authenticated and an invalid feed key is upload, an error should be returned
+      Given a valid feed key exists in the system
+      When I upload an invalid feed key via a PUT request to the key endpoint
+      Then the response status code should be 400
+      And the response body should be valid JSON
+      And the JSON message should be "Bad request: Key upload failed. Failed to validate key. Invalid Key data"
