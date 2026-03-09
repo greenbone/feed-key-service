@@ -103,7 +103,7 @@ Feature: Enterprise Feed Key
       When I post the field 'file' with a valid feed key to the key endpoint
       Then the response status code should be 500
       And the response body should be valid JSON
-      And the JSON message should be "Internal server error: Key upload failed. File error."
+      And the JSON message should be "Internal server error: Key upload failed. Could not write to file."
 
     Scenario: If the user is authenticated, uploading a feed key with a wrong field should return an error
       Given a valid feed key exists in the system
@@ -158,7 +158,7 @@ Feature: Enterprise Feed Key
       When I upload a valid feed key via a PUT request to the key endpoint
       Then the response status code should be 500
       And the response body should be valid JSON
-      And the JSON message should be "Internal server error: Key upload failed. File error."
+      And the JSON message should be "Internal server error: Key upload failed. Could not write to file."
 
     Scenario: If the user is authenticated and an invalid feed key is upload, an error should be returned
       Given a valid feed key exists in the system

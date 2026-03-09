@@ -129,7 +129,12 @@ where
 }
 
 async fn write_feed_key(feed_key_path: &Path, lines: Vec<String>) -> Result<(), Error> {
-    let file = match tokio::fs::File::create(feed_key_path).await {
+    let tempfile = tempfile::NamedTempFile::new().map_err(|e| {
+        tracing::error!("Failed to create temporary file for key upload: {}", e);
+        Error::InternalServerError("Key upload failed. File error.".to_string())
+    })?;
+    let tempfile_path = tempfile.into_temp_path();
+    let file = match tokio::fs::File::create(&tempfile_path).await {
         Ok(file) => file,
         Err(err) => {
             tracing::error!(
@@ -154,7 +159,18 @@ async fn write_feed_key(feed_key_path: &Path, lines: Vec<String>) -> Result<(), 
         tracing::error!("Failed to flush key file writer: {}", e);
         Error::InternalServerError("Key upload failed. Could not write to file.".to_string())
     })?;
+    tokio::fs::copy(&tempfile_path, &feed_key_path)
+        .await
+        .map_err(|e| {
+            tracing::error!(
+                "Failed to move temporary key file to destination {}: {}",
+                feed_key_path.display(),
+                e
+            );
+            Error::InternalServerError("Key upload failed. Could not write to file.".to_string())
+        })?;
 
+    let _ = tempfile_path.close();
     tracing::info!("Successfully wrote key file {}", feed_key_path.display());
     Ok(())
 }
