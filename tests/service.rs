@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::path::PathBuf;
+use std::{os::unix::fs::PermissionsExt, path::PathBuf};
 
 use axum::{
     body::Body,
@@ -15,10 +15,13 @@ use greenbone_feed_key::service::app::App;
 use gvm_auth::jwt::{Claims, JwtDecodeSecret, JwtEncodeSecret, generate_token};
 use rust_multipart_rfc7578_2::client::multipart::Body as MultipartBody;
 use rust_multipart_rfc7578_2::client::multipart::Form as MultipartForm;
+use serde_json::Value;
+use tempfile::TempDir;
 use tower::ServiceExt;
 
 const HEALTH_API: &str = "/api/v1/health";
 const KEY_API: &str = "/api/v1/key";
+const KEY_STATUS_API: &str = "/api/v1/key/status";
 const OPENAPI_DOCS_API: &str = "/api/v1/openapi.json";
 const SWAGGER_UI_URL: &str = "/swagger-ui/";
 const SHARED_SECRET: &str = "some-secret";
@@ -79,6 +82,7 @@ struct ServiceWorld {
     response_json: Option<serde_json::Value>,
     encode_secret: Option<JwtEncodeSecret>,
     decode_secret: Option<JwtDecodeSecret>,
+    tempdir: Option<TempDir>,
     tempfile_path: Option<PathBuf>,
 }
 
@@ -86,12 +90,13 @@ struct ServiceWorld {
 fn given_the_service_is_running(world: &mut ServiceWorld) {
     let encode_secret = JwtEncodeSecret::from_shared_secret(SHARED_SECRET);
     let decode_secret = JwtDecodeSecret::from_shared_secret(SHARED_SECRET);
-    let tempfile = tempfile::Builder::new()
+    let tempdir = tempfile::Builder::new()
         .prefix("feed_key_")
-        .tempfile()
-        .expect("Could not create temporary feed key file")
-        .into_temp_path();
+        .tempdir()
+        .expect("Could not create temporary feed key directory");
+    let tempfile = tempdir.path().join("feed-key-file");
     let app = App::new(&tempfile, None, &decode_secret, false);
+    world.tempdir = Some(tempdir);
     world.tempfile_path = Some(tempfile.to_path_buf());
     world.app = Some(app);
     world.encode_secret = Some(encode_secret);
@@ -105,7 +110,8 @@ fn given_a_valid_feed_key_exists_in_the_system(world: &mut ServiceWorld) {
         .tempfile_path
         .as_ref()
         .expect("No tempfile path available");
-    std::fs::write(path, VALID_FEED_KEY).expect("Could not write feed key to temporary file");
+    std::fs::write(path, VALID_FEED_KEY)
+        .expect(format!("Could not write feed key to temporary file {:?}", path).as_str());
 }
 
 #[given("no feed key exists in the system")]
@@ -142,13 +148,29 @@ fn given_the_feed_key_file_is_not_writable(world: &mut ServiceWorld) {
     std::fs::set_permissions(path, permissions).expect("Could not set file permissions");
 }
 
+#[given("the feed key file is not readable")]
+fn given_the_feed_key_file_is_not_readable(world: &mut ServiceWorld) {
+    let path = world
+        .tempdir
+        .as_ref()
+        .expect("No tempdir path available")
+        .path();
+    let mut permissions = std::fs::metadata(path)
+        .expect("Could not get file metadata")
+        .permissions();
+    permissions.set_mode(0o000);
+    tracing::info!("Setting tempdir permissions {:?} to not readable", path);
+    std::fs::set_permissions(path, permissions).expect("Could not set file permissions");
+}
+
 #[when(
-    regex = r"^I send a (GET|DELETE|POST|PUT) request to the (key endpoint|health endpoint|API documentation|swagger UI)$"
+    regex = r"^I send a (GET|DELETE|POST|PUT) request to the (key endpoint|key status endpoint|health endpoint|API documentation|swagger UI)$"
 )]
 async fn when_i_send_a_request(world: &mut ServiceWorld, method: String, endpoint: String) {
     let builder = Request::builder();
     let builder = match endpoint.as_str() {
         "key endpoint" => builder.uri(KEY_API),
+        "key status endpoint" => builder.uri(KEY_STATUS_API),
         "health endpoint" => builder.uri(HEALTH_API),
         "API documentation" => builder.uri(OPENAPI_DOCS_API),
         "swagger UI" => builder.uri(SWAGGER_UI_URL),
@@ -351,6 +373,29 @@ fn then_the_json_message_should_be(world: &mut ServiceWorld, expected_message: S
         .expect("'message' field is not a string");
 
     assert_eq!(message, expected_message);
+}
+
+#[then(expr = "the response JSON property {string} should be {string}")]
+fn then_the_response_json_property_should_be(
+    world: &mut ServiceWorld,
+    property: String,
+    expected_value: String,
+) {
+    let json = world
+        .response_json
+        .as_ref()
+        .expect("No JSON response stored");
+
+    let value = match json
+        .get(&property)
+        .unwrap_or_else(|| panic!("No {} field in JSON response", &property))
+    {
+        Value::String(value) => value,
+        Value::Bool(value) => &value.to_string(),
+        _ => panic!("Invalid value"),
+    };
+
+    assert_eq!(value, &expected_value);
 }
 
 #[tokio::main]
