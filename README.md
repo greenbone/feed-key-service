@@ -11,6 +11,7 @@ Service for Managing a Greenbone Feed Key
 - [JWT](#jwt)
 - [CLI](#cli)
 - [API](#api)
+- [Logging](#logging)
 - [Maintainer](#maintainer)
 - [Contributing](#contributing)
 - [License](#license)
@@ -97,6 +98,27 @@ when running the greenbone-feed-key service.
 | `/api/v1/key`    | `PUT`    | Upload a feed key as `application/octet-stream`. Existing key gets overridden.                 |
 | `/api/v1/key`    | `POST`   | Upload a feed key via `form/multipart` data in the `file` field. Existing key gets overridden. |
 | `/api/v1/key`    | `DELETE` | Delete the feed key                                                                            |
+
+## Logging
+
+The console output of the greenbone-feed-key service can be adjusted via
+the `GREENBONE_FEED_KEY_LOG` environment variable or the `-l, --log` CLI
+argument. The logging is implemented via the [tracing library](https://docs.rs/tracing/latest/tracing/)
+and uses [env filter directives](https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives).
+
+To enable debug logs for all logging/tracing targets the following command can
+be used:
+
+```shell
+export GREENBONE_FEED_KEY_LOG=debug
+```
+
+To enable debug log for http requests and the feed service itself the following
+command can be used:
+
+```shell
+export GREENBONE_FEED_KEY_LOG=greenbone_feed_key=debug,tower_http=debug
+```
 
 ## Maintainer
 
