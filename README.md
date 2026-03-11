@@ -91,13 +91,14 @@ The full API specification can be created by running `greenbone-feed-service-cli
 or by enabling the Swagger UI via `--enable-api-doc` or `GREENBONE_FEED_KEY_API_DOC=true`
 when running the greenbone-feed-key service.
 
-| Path             | Method   | Description                                                                                    |
-| ---------------- | -------- | ---------------------------------------------------------------------------------------------- |
-| `/api/v1/health` | `GET`    | A JSON response to indicate the health of the service                                          |
-| `/api/v1/key`    | `GET`    | Get the current available key as `application/octet-stream`                                    |
-| `/api/v1/key`    | `PUT`    | Upload a feed key as `application/octet-stream`. Existing key gets overridden.                 |
-| `/api/v1/key`    | `POST`   | Upload a feed key via `form/multipart` data in the `file` field. Existing key gets overridden. |
-| `/api/v1/key`    | `DELETE` | Delete the feed key                                                                            |
+| Path                 | Method   | Description                                                                                    |
+| -------------------- | -------- | ---------------------------------------------------------------------------------------------- |
+| `/api/v1/health`     | `GET`    | A JSON response to indicate the health of the service                                          |
+| `/api/v1/key`        | `GET`    | Get the current available key as `application/octet-stream`                                    |
+| `/api/v1/key`        | `PUT`    | Upload a feed key as `application/octet-stream`. Existing key gets overridden.                 |
+| `/api/v1/key`        | `POST`   | Upload a feed key via `form/multipart` data in the `file` field. Existing key gets overridden. |
+| `/api/v1/key`        | `DELETE` | Delete the feed key                                                                            |
+| `/api/v1/key/status` | `GET`    | A JSON response of the current feed key status                                                 |
 
 ## Logging
 
