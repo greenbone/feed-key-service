@@ -29,6 +29,12 @@ Feature: Enterprise Feed Key
       And the response body should be valid JSON
       And the JSON message should be "Unauthorized"
 
+    Scenario: If the user is unauthenticated, it should not be possible to get the feed key status
+      When I send a GET request to the key status endpoint
+      Then the response status code should be 401
+      And the response body should be valid JSON
+      And the JSON message should be "Unauthorized"
+
   Rule: Getting the key
 
     Background:
@@ -166,3 +172,21 @@ Feature: Enterprise Feed Key
       Then the response status code should be 400
       And the response body should be valid JSON
       And the JSON message should be "Bad request: Key upload failed. Failed to validate key. Invalid Key data"
+
+  Rule: Getting the key status
+
+    Background:
+      Given the user is authenticated
+
+    Scenario: If the user is authenticated and a feed key exists, the key status should reflect that
+      Given a valid feed key exists in the system
+      When I send a GET request to the key status endpoint
+      Then the response status code should be 200
+      And the response body should be valid JSON
+      And the response JSON property "hasKey" should be "true"
+
+    Scenario: If the user is authenticated and no feed key exists, the key status should reflect that
+      Given no feed key exists in the system
+      Then the response status code should be 200
+      And the response body should be valid JSON
+      And the response JSON property "hasKey" should be "false"
