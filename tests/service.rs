@@ -111,7 +111,7 @@ fn given_a_valid_feed_key_exists_in_the_system(world: &mut ServiceWorld) {
         .as_ref()
         .expect("No tempfile path available");
     std::fs::write(path, VALID_FEED_KEY)
-        .expect(format!("Could not write feed key to temporary file {:?}", path).as_str());
+        .unwrap_or_else(|_| panic!("Could not write feed key to temporary file {:?}", path));
 }
 
 #[given("no feed key exists in the system")]

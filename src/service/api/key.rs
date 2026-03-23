@@ -5,7 +5,7 @@
 use std::{io, path::Path};
 
 use axum::{
-    Router,
+    Json, Router,
     body::Body,
     extract::{DefaultBodyLimit, Multipart, Request, State},
     http::header,
@@ -13,6 +13,7 @@ use axum::{
     routing::{get, put},
 };
 use futures::TryStreamExt;
+use serde::Serialize;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader, BufWriter};
 use tokio_util::io::{ReaderStream, StreamReader};
 use utoipa::{OpenApi, ToSchema};
@@ -34,7 +35,7 @@ const DEFAULT_UPLOAD_LIMIT: usize = 2 * 1024 * 1024; // 2 MB
 #[openapi(
     info(description = "Key management endpoint", title = "Key API"),
     tags((name = KEY_TAG, description = "Key management operations")),
-    paths(download_key, upload_key, upload_key_multipart, delete_key)
+    paths(download_key, upload_key, upload_key_multipart, delete_key, key_status)
 )]
 pub struct KeyApi;
 
@@ -428,6 +429,49 @@ async fn delete_key(State(state): State<AppState>) -> Result<JsonResponse, Error
     }
 }
 
+#[derive(Serialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+struct KeyStatus {
+    has_key: bool,
+}
+
+/// Status of the current feed key.
+#[utoipa::path(
+  get,
+  path = "/status",
+  responses(
+    (
+        status = 200,
+        description = "Status of the current feed key",
+        body = KeyStatus,
+        content_type= "application/json",
+        example = json!({"hasKey": true})
+    ),
+    (
+        status = 500,
+        description = "Getting the Key Status failed because of a File error.",
+        body = JsonResponse,
+        content_type= "application/json",
+        example = json!({"status": "error", "message": "Internal Server Error. File error."})
+    ),
+),
+  tag = KEY_TAG,
+  security(("jwt_auth" = []))
+)]
+async fn key_status(State(state): State<AppState>) -> Result<Json<KeyStatus>, Error> {
+    match state.feed_key_path.try_exists() {
+        Ok(exists) => Ok(Json(KeyStatus { has_key: exists })),
+        Err(err) => {
+            tracing::error!(
+                "Failed to get status of key file {}: {}",
+                state.feed_key_path.display(),
+                err
+            );
+            Err(Error::InternalServerError("File error.".to_string()))
+        }
+    }
+}
+
 pub fn routes(state: AppState, upload_limit: Option<usize>) -> AppRouter {
     Router::new()
         .route("/", get(download_key).delete(delete_key))
@@ -442,6 +486,7 @@ pub fn routes(state: AppState, upload_limit: Option<usize>) -> AppRouter {
                     upload_limit.unwrap_or(DEFAULT_UPLOAD_LIMIT),
                 )),
         )
+        .route("/status", get(key_status))
         // require authorization for all key routes
         .layer(axum::middleware::from_fn_with_state(
             state,
