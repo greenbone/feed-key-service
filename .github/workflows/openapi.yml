@@ -32,6 +32,16 @@ jobs:
           make openapi
           mkdir -p docs
           mv openapi.json docs/
+      - name: Download Swagger UI
+        run: |
+          LATEST_TAG=$(curl -sL https://api.github.com/repos/swagger-api/swagger-ui/releases/latest | jq -r ".tag_name")
+          curl -sL https://github.com/swagger-api/swagger-ui/archive/refs/tags/$LATEST_TAG.tar.gz -o swagger-ui.tar.gz
+          LATEST_RELEASE=$(echo $LATEST_TAG | sed 's/v//')
+          tar xvzf swagger-ui.tar.gz --strip-components=1 "swagger-ui-$LATEST_RELEASE/dist"
+      - name: Prepare Swagger UI
+        run: |
+          sed -i "s/https:\/\/petstore.swagger.io\/v2\/swagger.json/openapi.json/g" dist/swagger-initializer.js
+          mv dist/* docs/
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v4
         with:
