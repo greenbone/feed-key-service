@@ -85,20 +85,8 @@ Run `greenbone-feed-service-cli --help` for more details.
 
 ## API
 
-This is just a summary of the REST API.
-
-The full API specification can be created by running `greenbone-feed-service-cli openapi`
-or by enabling the Swagger UI via `--enable-api-doc` or `GREENBONE_FEED_KEY_API_DOC=true`
-when running the greenbone-feed-key service.
-
-| Path                 | Method   | Description                                                                                    |
-| -------------------- | -------- | ---------------------------------------------------------------------------------------------- |
-| `/api/v1/health`     | `GET`    | A JSON response to indicate the health of the service                                          |
-| `/api/v1/key`        | `GET`    | Get the current available key as `application/octet-stream`                                    |
-| `/api/v1/key`        | `PUT`    | Upload a feed key as `application/octet-stream`. Existing key gets overridden.                 |
-| `/api/v1/key`        | `POST`   | Upload a feed key via `form/multipart` data in the `file` field. Existing key gets overridden. |
-| `/api/v1/key`        | `DELETE` | Delete the feed key                                                                            |
-| `/api/v1/key/status` | `GET`    | A JSON response of the current feed key status                                                 |
+The current OpenAPI specification of the default branch can be found at
+<https://greenbone.github.io/feed-key-service/openapi.json>.
 
 ## Logging
 

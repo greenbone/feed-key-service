@@ -34,3 +34,6 @@ format:
 
 run:
 	cargo run --bin greenbone-feed-key
+
+openapi:
+	cargo run --bin greenbone-feed-key-cli openapi
