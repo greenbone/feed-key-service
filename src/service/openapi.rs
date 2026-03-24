@@ -28,7 +28,12 @@ impl Modify for SecuritySchemas {
 
 #[derive(OpenApi)]
 #[openapi(
-    info(description = "Greenbone Feed Key API", title = "Greenbone Feed Key"),
+    info(
+        description = "Greenbone Feed Key API",
+        title = "Greenbone Feed Key",
+        license(name = "AGPL-3.0-or-later", url = "https://www.gnu.org/licenses/agpl-3.0.txt"),
+        contact(name = "Greenbone AG", url = "https://www.greenbone.net")
+    ),
     modifiers(&SecuritySchemas),
     nest(
         (path = "/api/v1/health", api = crate::service::api::health::HealthApi),
