@@ -25,7 +25,7 @@ It generates a secure random token with 32 Byte (256 bit) length (by default).
 The following command creates a secret with 64 Byte (512 bit) length.
 
 ```sh
-KEY_SIZE=64 ./generate-secrete.sh
+KEY_SIZE=64 ./generate-secret.sh
 ```
 
 The shared secret can be used in the `greenbone-feed-key` service at best via a
