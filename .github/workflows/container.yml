@@ -43,6 +43,18 @@ jobs:
         ${{ vars.GREENBONE_REGISTRY }}/openvas-scan-dev/${{ github.event.repository.name }},enable=${{ github.event_name != 'pull_request' && matrix.build.name == 'default' }}
     secrets: inherit
 
+  automatix:
+    name: Update Automatix
+    if: ${{ !cancelled() && startsWith(github.ref, 'refs/tags/v') }}
+    needs: build
+    uses: greenbone/workflows/.github/workflows/automatix-service.yml@main
+    with:
+      service: openvas-feed-key-service
+      url: ${{ vars.GREENBONE_REGISTRY }}/openvas-scan-dev/${{ github.event.repository.name }}
+      tag: ${{ github.ref_name }}
+      artifact-pattern: default
+    secrets: inherit
+
   notify:
     needs:
       - build
