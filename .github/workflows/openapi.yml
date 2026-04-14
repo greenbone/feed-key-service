@@ -43,7 +43,7 @@ jobs:
           sed -i "s/https:\/\/petstore.swagger.io\/v2\/swagger.json/openapi.json/g" dist/swagger-initializer.js
           mv dist/* docs/
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@v5
         with:
           path: docs
 
