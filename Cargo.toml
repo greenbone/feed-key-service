@@ -22,7 +22,7 @@ axum = { version = "0.8.9", features = ["http2", "multipart"] }
 axum-server = { version = "0.8.0", features = ["tls-rustls"] }
 base64 = "0.22.1"
 chrono = "0.4.44"
-clap = { version = "4.6.0", features = ["derive", "env"] }
+clap = { version = "4.6.1", features = ["derive", "env"] }
 futures = "0.3.32"
 gvm-auth = "0.2.0"
 jsonwebtoken = { version = "10.3.0", features = ["aws_lc_rs"] }
