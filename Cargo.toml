@@ -18,7 +18,7 @@ name = "service"
 harness = false
 
 [dependencies]
-axum = { version = "0.8.8", features = ["http2", "multipart"] }
+axum = { version = "0.8.9", features = ["http2", "multipart"] }
 axum-server = { version = "0.8.0", features = ["tls-rustls"] }
 base64 = "0.22.1"
 chrono = "0.4.44"
