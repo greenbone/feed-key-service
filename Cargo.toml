@@ -47,5 +47,5 @@ utoipa = { version = "5.4.0", features = ["axum_extras"] }
 utoipa-swagger-ui = { version = "9.0.2", features = ["axum"] }
 
 [dev-dependencies]
-cucumber = { version = "0.22.1", features = ["tracing"] }
+cucumber = { version = "0.23.0", features = ["tracing"] }
 rust-multipart-rfc7578_2 = "0.9.0"
