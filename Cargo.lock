@@ -960,9 +960,9 @@ dependencies = [
 
 [[package]]
 name = "gvm-auth"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4a262b0016cb20c53599a3f364b5c36ea90a54a6d400cf7902079b4be28f98ed"
+checksum = "ed235ec10be6f2847c525e685df55a1bbbf24c7d650e977ba2f4143c14cc547a"
 dependencies = [
  "chrono",
  "jsonwebtoken",
