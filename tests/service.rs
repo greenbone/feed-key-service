@@ -388,7 +388,7 @@ fn then_the_response_json_property_should_be(
 
     let value = match json
         .get(&property)
-        .unwrap_or_else(|| panic!("No {} field in JSON response", &property))
+        .unwrap_or_else(|| panic!("No {} field in JSON response", property))
     {
         Value::String(value) => value,
         Value::Bool(value) => &value.to_string(),
