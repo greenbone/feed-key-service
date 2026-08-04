@@ -22,7 +22,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Set up Rust toolchain
-        uses: greenbone/actions/setup-rust@v3
+        uses: greenbone/actions/setup-rust@v3.36.12
         with:
           rust-version: stable
       - name: Build
@@ -36,7 +36,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Set up Rust toolchain
-        uses: greenbone/actions/setup-rust@v3
+        uses: greenbone/actions/setup-rust@v3.36.12
         with:
           rust-version: stable
       - name: Run Rust linter
@@ -48,7 +48,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Set up Rust toolchain
-        uses: greenbone/actions/setup-rust@v3
+        uses: greenbone/actions/setup-rust@v3.36.12
         with:
           rust-version: stable
       - name: Check code formatting
