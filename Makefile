@@ -1,4 +1,5 @@
-.PHONY: test test-integration test-unit build clean build-release run install lint check-format format
+.PHONY: test test-integration test-unit build clean build-release run install \
+	lint check-format format install-llvm-cov coverage
 
 INSTALL_PREFIX ?= /usr/local
 
@@ -37,3 +38,10 @@ run:
 
 openapi:
 	cargo run --bin greenbone-feed-key-cli openapi
+
+install-llvm-cov:
+	cargo install --locked cargo-llvm-cov
+
+coverage: install-llvm-cov
+	cargo llvm-cov --locked --all-targets --html --output-dir target/coverage
+	cargo llvm-cov report --locked --lcov --output-path target/coverage/lcov.info
