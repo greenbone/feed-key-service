@@ -6,6 +6,10 @@ updates:
       interval: "weekly"
     commit-message:
       prefix: "Deps"
+    groups:
+      utoipa:
+        patterns:
+          - "utoipa*"
 
   - package-ecosystem: "github-actions"
     directory: "/"
