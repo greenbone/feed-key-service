@@ -85,10 +85,21 @@ jobs:
           sign-release-files: "false"
 
   build-binaries:
-    name: Build binary artifacts
-    runs-on: "ubuntu-latest"
+    name: Build binary artifacts (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
     container: rust:slim-bookworm
     needs: build-and-release
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+            tarball-suffix: "-amd64"
+          - arch: arm64
+            runner: self-hosted-generic-arm64
+            tarball-suffix: "-arm64"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -104,12 +115,12 @@ jobs:
           DESTDIR=/tmp/install make install
       - name: Create tarballs
         run: |
-          tar -C /tmp/install -czvf feed-key-service-${{ needs.build-and-release.outputs.release-version }}-binaries.tar.gz .
+          tar -C /tmp/install -czvf feed-key-service-${{ needs.build-and-release.outputs.release-version }}${{ matrix.tarball-suffix }}.tar.gz .
       - name: Upload Artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: feed-key-service-${{ needs.build-and-release.outputs.release-version }}-binaries
-          path: feed-key-service-${{ needs.build-and-release.outputs.release-version }}-binaries.tar.gz
+          name: feed-key-service-${{ needs.build-and-release.outputs.release-version }}-${{ matrix.arch }}
+          path: feed-key-service-${{ needs.build-and-release.outputs.release-version }}${{ matrix.tarball-suffix }}.tar.gz
 
   upload-and-sign-release-files:
     name: Upload and sign release files
@@ -118,13 +129,23 @@ jobs:
       - build-and-release
       - build-binaries
     steps:
-      - name: Download release artifacts
+      - name: Download amd64 release artifact
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: feed-key-service-${{ needs.build-and-release.outputs.release-version }}-binaries
+          name: feed-key-service-${{ needs.build-and-release.outputs.release-version }}-amd64
+
+      - name: Download arm64 release artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: feed-key-service-${{ needs.build-and-release.outputs.release-version }}-arm64
+
       - name: Upload release artifacts to GitHub Release
         run: |
-          gh release upload --repo ${{ github.repository }} ${{ needs.build-and-release.outputs.git-release-tag }} feed-key-service-${{ needs.build-and-release.outputs.release-version }}-binaries.tar.gz
+          gh release upload \
+            --repo ${{ github.repository }} \
+            ${{ needs.build-and-release.outputs.git-release-tag }} \
+            feed-key-service-${{ needs.build-and-release.outputs.release-version }}-amd64.tar.gz \
+            feed-key-service-${{ needs.build-and-release.outputs.release-version }}-arm64.tar.gz
         env:
           GH_TOKEN: ${{ secrets.GREENBONE_BOT_TOKEN }}
       - name: Sign release files
